@@ -5,7 +5,7 @@ require('dotenv').config();
 
 const app = express();
 
-// السماح لمتجرك على Vercel بالوصول
+// --- أهم نقطة: السماح لمتجرك على Vercel بالوصول ---
 app.use(cors({
     origin: 'https://drop-and-spark-web.vercel.app'
 }));
@@ -21,7 +21,7 @@ app.get('/api/products', async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM products ORDER BY id DESC');
         res.json(result.rows);
-    } catch (err) { res.status(500).json({ error: "خطأ قاعدة البيانات" }); }
+    } catch (err) { res.status(500).json({ error: "خطأ في القاعدة" }); }
 });
 
 app.post('/api/products', async (req, res) => {
@@ -37,5 +37,5 @@ app.post('/api/products', async (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-    console.log(`🚀 محرك قطرة وشرارة متصل بالسحاب`);
+    console.log(`🚀 محرك قطرة وشرارة يعمل الآن بنجاح`);
 });
