@@ -5,8 +5,9 @@ require('dotenv').config();
 
 const app = express();
 
+// السماح لمتجرك على Vercel بالوصول
 app.use(cors({
-    origin: 'https://drop-and-spark-web.vercel.app' // رابط متجرك على Vercel
+    origin: 'https://drop-and-spark-web.vercel.app'
 }));
 
 app.use(express.json());
@@ -20,9 +21,7 @@ app.get('/api/products', async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM products ORDER BY id DESC');
         res.json(result.rows);
-    } catch (err) {
-        res.status(500).json({ error: "خطأ في جلب البيانات" });
-    }
+    } catch (err) { res.status(500).json({ error: "خطأ قاعدة البيانات" }); }
 });
 
 app.post('/api/products', async (req, res) => {
@@ -33,12 +32,10 @@ app.post('/api/products', async (req, res) => {
             [name, price, category]
         );
         res.status(201).json(result.rows[0]);
-    } catch (err) {
-        res.status(500).json({ error: "خطأ في حفظ المنتج" });
-    }
+    } catch (err) { res.status(500).json({ error: "خطأ في الحفظ" }); }
 });
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-    console.log(`🚀 محرك قطرة وشرارة متصل بالسحاب على منفذ ${PORT}`);
+    console.log(`🚀 محرك قطرة وشرارة متصل بالسحاب`);
 });
