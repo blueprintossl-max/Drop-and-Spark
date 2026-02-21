@@ -6,14 +6,9 @@ require('dotenv').config();
 const app = express();
 
 // --- إعدادات الأمان (CORS) ---
-// قمنا بإضافة رابط Vercel الجديد الخاص بك لكي يسمح السيرفر باستقبال الطلبات منه
+// تم تثبيت رابط Vercel الخاص بك لضمان قبول الطلبات
 app.use(cors({
-    origin: [
-        'https://drop-and-spark-web.vercel.app', // رابط المتجر الجديد على Vercel
-        'http://localhost:3000'                 // للعمل المحلي أثناء التطوير
-    ],
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type']
+    origin: 'https://drop-and-spark-web.vercel.app'
 }));
 
 app.use(express.json());
@@ -24,20 +19,19 @@ const pool = new Pool({
     ssl: { rejectUnauthorized: false }
 });
 
-// --- المسارات (Endpoints) ---
+// --- المسارات ---
 
-// 1. جلب جميع المنتجات
+// جلب المنتجات
 app.get('/api/products', async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM products ORDER BY id DESC');
         res.json(result.rows);
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'خطأ في جلب البيانات من القاعدة' });
+        res.status(500).json({ error: "خطأ في القاعدة" });
     }
 });
 
-// 2. إضافة منتج جديد
+// إضافة منتج جديد
 app.post('/api/products', async (req, res) => {
     const { name, price, category } = req.body;
     try {
@@ -47,13 +41,11 @@ app.post('/api/products', async (req, res) => {
         );
         res.status(201).json(result.rows[0]);
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'خطأ في حفظ المنتج' });
+        res.status(500).json({ error: "خطأ في الحفظ" });
     }
 });
 
-// تشغيل السيرفر
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+    console.log(`🚀 محرك قطرة وشرارة متصل بالسحاب على منفذ ${PORT}`);
 });
