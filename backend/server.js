@@ -6,17 +6,18 @@ require('dotenv').config();
 const app = express();
 
 // --- أهم نقطة: السماح لمتجرك على Vercel بالوصول ---
+// داخل ملف server.js
 app.use(cors({
-    origin: 'https://drop-and-spark-web.vercel.app'
+    origin: 'https://drop-and-spark-web.vercel.app' // رابط متجرك المباشر
 }));
 
 app.use(express.json());
 
+// التوصيلة الصحيحة التي تقرأ الرابط من Render
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
 });
-
 app.get('/api/products', async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM products ORDER BY id DESC');
