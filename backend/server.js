@@ -7,11 +7,23 @@ const app = express();
 
 // --- أهم نقطة: السماح لمتجرك على Vercel بالوصول ---
 // داخل ملف server.js
-app.use(cors({
-    origin: 'https://drop-and-spark-web.vercel.app' // رابط متجرك المباشر
-}));
+// استبدل سطر الـ CORS بهذا ليكون مفتوحاً للجميع مؤقتاً
+app.use(cors()); 
 
-app.use(express.json());
+// وتأكد أن جزء الـ POST مكتوب بهذا الشكل ليعطيك تفاصيل الخطأ
+app.post('/api/products', async (req, res) => {
+    const { name, price, category } = req.body;
+    try {
+        const result = await pool.query(
+            'INSERT INTO products (name, price, category) VALUES ($1, $2, $3) RETURNING *',
+            [name, price, category]
+        );
+        res.status(201).json(result.rows[0]);
+    } catch (err) {
+        console.error("❌ عطل في الحفظ:", err.message); // هذا سيظهر في سجلات Render
+        res.status(500).json({ error: err.message });
+    }
+});
 
 // التوصيلة الصحيحة التي تقرأ الرابط من Render
 const pool = new Pool({
