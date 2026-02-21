@@ -5,17 +5,14 @@ require('dotenv').config();
 
 const app = express();
 
-// --- إعدادات أساسية ---
 app.use(cors()); 
-app.use(express.json()); // 🔴 السطر الأهم لقراءة البيانات المضافة
+app.use(express.json()); 
 
-// --- التوصيلة بقاعدة البيانات ---
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
 });
 
-// --- مسار جلب المنتجات ---
 app.get('/api/products', async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM products ORDER BY id DESC');
@@ -26,7 +23,6 @@ app.get('/api/products', async (req, res) => {
     }
 });
 
-// --- مسار إضافة المنتجات ---
 app.post('/api/products', async (req, res) => {
     try {
         const { name, price, category } = req.body;
@@ -43,5 +39,6 @@ app.post('/api/products', async (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-    console.log(`🚀 محرك قطرة وشرارة متصل بالسحاب ويعمل على المنفذ ${PORT}`);
+    // 👇 هنا تم تحديث رسالة السجلات 👇
+    console.log(`🚀 محرك متجر 💧 قطرة و⚡ شرارة متصل بالسحاب ويعمل على المنفذ ${PORT}`);
 });
