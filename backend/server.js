@@ -5,33 +5,26 @@ require('dotenv').config();
 
 const app = express();
 
-// --- إعدادات الأمان (CORS) ---
-// تم تثبيت رابط Vercel الخاص بك لضمان قبول الطلبات
 app.use(cors({
-    origin: 'https://drop-and-spark-web.vercel.app'
+    origin: 'https://drop-and-spark-web.vercel.app' // رابط متجرك على Vercel
 }));
 
 app.use(express.json());
 
-// --- الاتصال بقاعدة بيانات Neon ---
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
 });
 
-// --- المسارات ---
-
-// جلب المنتجات
 app.get('/api/products', async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM products ORDER BY id DESC');
         res.json(result.rows);
     } catch (err) {
-        res.status(500).json({ error: "خطأ في القاعدة" });
+        res.status(500).json({ error: "خطأ في جلب البيانات" });
     }
 });
 
-// إضافة منتج جديد
 app.post('/api/products', async (req, res) => {
     const { name, price, category } = req.body;
     try {
@@ -41,7 +34,7 @@ app.post('/api/products', async (req, res) => {
         );
         res.status(201).json(result.rows[0]);
     } catch (err) {
-        res.status(500).json({ error: "خطأ في الحفظ" });
+        res.status(500).json({ error: "خطأ في حفظ المنتج" });
     }
 });
 
