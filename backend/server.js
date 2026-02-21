@@ -1,43 +1,59 @@
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
+require('dotenv').config();
 
 const app = express();
-app.use(cors());
-app.use(express.json({ limit: '50mb' }));
 
-// 🔗 ربط المحرك بقاعدة بيانات نيون السحابية
+// --- إعدادات الأمان (CORS) ---
+// قمنا بإضافة رابط Vercel الجديد الخاص بك لكي يسمح السيرفر باستقبال الطلبات منه
+app.use(cors({
+    origin: [
+        'https://drop-and-spark-web.vercel.app', // رابط المتجر الجديد على Vercel
+        'http://localhost:3000'                 // للعمل المحلي أثناء التطوير
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type']
+}));
+
+app.use(express.json());
+
+// --- الاتصال بقاعدة بيانات Neon ---
 const pool = new Pool({
-  connectionString: 'ضع_هنا_الرابط_الذي_نسخته_من_نيون',
-  ssl: { rejectUnauthorized: false }
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false }
 });
 
-// جلب المنتجات
+// --- المسارات (Endpoints) ---
+
+// 1. جلب جميع المنتجات
 app.get('/api/products', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT * FROM Products ORDER BY id ASC');
-    res.json(result.rows);
-  } catch (err) { res.status(500).send('خطأ في السحاب'); }
+    try {
+        const result = await pool.query('SELECT * FROM products ORDER BY id DESC');
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'خطأ في جلب البيانات من القاعدة' });
+    }
 });
 
-// إضافة منتج (مع السعر القديم والتصنيف)
+// 2. إضافة منتج جديد
 app.post('/api/products', async (req, res) => {
-  const { name, brand, category, price, old_price, image_url } = req.body;
-  await pool.query(
-    "INSERT INTO Products (name, brand, category, price, old_price, image_url) VALUES ($1, $2, $3, $4, $5, $6)",
-    [name, brand, category, price, old_price, image_url]
-  );
-  res.json({ success: true });
+    const { name, price, category } = req.body;
+    try {
+        const result = await pool.query(
+            'INSERT INTO products (name, price, category) VALUES ($1, $2, $3) RETURNING *',
+            [name, price, category]
+        );
+        res.status(201).json(result.rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'خطأ في حفظ المنتج' });
+    }
 });
 
-// تسجيل الطلبات
-app.post('/api/orders', async (req, res) => {
-  const { customer_name, customer_phone, order_details, total_price } = req.body;
-  await pool.query(
-    "INSERT INTO Orders (customer_name, customer_phone, order_details, total_price) VALUES ($1, $2, $3, $4)",
-    [customer_name, customer_phone, order_details, total_price]
-  );
-  res.json({ success: true });
+// تشغيل السيرفر
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
 });
-
-app.listen(5000, () => console.log('🚀 محرك قطرة وشرارة متصل بالسحاب!'));
