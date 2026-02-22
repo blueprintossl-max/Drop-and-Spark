@@ -1,36 +1,22 @@
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
-:root { --navy: #0a192f; --gold: #D4AF37; --white: #fff; --red: #ff4757; --green: #27ae60; }
-body { margin: 0; font-family: 'Tajawal', sans-serif; direction: rtl; }
+:root { --navy: #0a192f; --gold: #D4AF37; }
+body { margin: 0; font-family: 'Tajawal', sans-serif; direction: rtl; background: #fdfdfd; }
+
+/* حل تباعد المنتجات */
+.container-p { max-width: 1200px; margin: 0 auto; padding: 20px; }
+.grid-p { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+.card-p { background: white; border-radius: 15px; border: 1px solid #eee; overflow: hidden; height: 380px; text-align: center; display: flex; flex-direction: column; }
+.img-p { height: 200px; background: #f9f9f9; }
+.img-p img { width: 100%; height: 100%; object-fit: contain; }
 
 /* الإدارة 30/70 */
 .admin-root { display: flex; height: 100vh; overflow: hidden; }
-.sidebar-30 { flex: 0 0 30%; background: var(--navy); border-left: 3px solid var(--gold); display: flex; flex-direction: column; }
-.content-70 { flex: 0 0 70%; background: #fdfdfd; padding: 40px; overflow-y: auto; }
+.sidebar-30 { flex: 0 0 30%; background: var(--navy); color: white; border-left: 3px solid var(--gold); display: flex; flex-direction: column; }
+.content-70 { flex: 0 0 70%; background: #f4f7f6; padding: 40px; overflow-y: auto; }
 
-/* أزرار الحالة التفاعلية */
-.status-toggles { display: flex; gap: 15px; margin: 20px 0; }
-.toggle-btn { 
-  flex: 1; padding: 15px; border-radius: 12px; border: 2px solid #eee; 
-  background: white; cursor: pointer; font-weight: bold; transition: 0.3s;
-}
-/* تغير اللون عند تفعيل "عرض خاص" */
-.toggle-btn.sale.active { background: #fff0f0; border-color: var(--red); color: var(--red); box-shadow: 0 5px 15px rgba(255, 71, 87, 0.2); }
-/* تغير اللون عند تفعيل "نفذت الكمية" */
-.toggle-btn.stock.active { background: #f0f0f0; border-color: #555; color: #555; opacity: 0.7; }
+/* تغير ألوان الأزرار التفاعلية */
+.t-btn { flex: 1; padding: 15px; border-radius: 10px; border: 2px solid #ddd; background: white; cursor: pointer; font-weight: bold; transition: 0.3s; }
+.t-btn.sale.on { background: #ff4757; color: white; border-color: #ff4757; box-shadow: 0 5px 15px rgba(255, 71, 87, 0.3); }
+.t-btn.stock.on { background: #555; color: white; border-color: #555; }
 
-/* إشعار الحفظ التلقائي */
-.toast-notification {
-  position: fixed; top: 30px; left: 50%; transform: translateX(-50%);
-  background: var(--gold); color: var(--navy); padding: 15px 40px;
-  border-radius: 50px; font-weight: 900; z-index: 5000;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.2); animation: slideDown 0.3s ease-out;
-}
-@keyframes slideDown { from { top: -50px; opacity: 0; } to { top: 30px; opacity: 1; } }
-
-/* زر الحفظ الملكي */
-.save-action-btn {
-  width: 100%; background: var(--navy); color: var(--gold); padding: 20px;
-  border: 2px solid var(--gold); border-radius: 12px; font-size: 1.2rem; font-weight: 900;
-  cursor: pointer; transition: 0.3s;
-}
-.save-action-btn:hover { background: var(--gold); color: var(--navy); }
+.toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--navy); padding: 12px 40px; border-radius: 50px; font-weight: 900; z-index: 5000; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
