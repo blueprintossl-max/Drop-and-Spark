@@ -5,9 +5,11 @@ const API_URL = 'https://drop-and-spark-1.onrender.com/api/products';
 
 function App() {
   const [products, setProducts] = useState([]);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [view, setView] = useState('store');
+  const [view, setView] = useState('store'); // store أو reports
   const [formData, setFormData] = useState({ name: '', price: '', image: '', category: 'كهرباء ⚡' });
+
+  // التحقق من الرابط السري للإدارة (إذا انتهى الرابط بـ /admin)
+  const isAdminPath = window.location.pathname.includes('/admin');
 
   useEffect(() => { fetchProducts(); }, []);
 
@@ -16,7 +18,7 @@ function App() {
       const res = await fetch(API_URL);
       const data = await res.json();
       setProducts(data);
-    } catch (e) { console.log("السيرفر نائم.."); }
+    } catch (e) { alert("⚠️ السيرفر نائم، انتظر ثواني وحدث الصفحة"); }
   };
 
   const handleFileUpload = (e) => {
@@ -29,94 +31,102 @@ function App() {
     if (file) reader.readAsDataURL(file);
   };
 
-  const login = () => {
-    const p = prompt("أدخل كلمة المرور:");
-    if (p === "123") {
-      setIsAdmin(true);
-      alert("🔓 أهلاً بك يا مدير المتجر، تم تفعيل لوحة التحكم");
-    } else { alert("❌ عذراً، كلمة المرور خاطئة"); }
-  };
-
   const handleAdd = async () => {
-    if (!formData.name || !formData.price || !formData.image) return alert("⚠️ يرجى إكمال البيانات ورفع الصورة أولاً");
-    
+    if (!formData.name || !formData.price || !formData.image) return alert("⚠️ يرجى إكمال البيانات ورفع صورة أولاً");
     const res = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(formData)
     });
-
     if (res.ok) {
-      alert("🚀 رائع! تم حفظ المنتج بنجاح وسيظهر الآن للعملاء");
+      alert("🚀 رائع! تم حفظ المنتج بنجاح وسيظهر للعملاء فوراً");
       setFormData({ name: '', price: '', image: '', category: 'كهرباء ⚡' });
       fetchProducts();
-    } else {
-      alert("❌ حدث خطأ أثناء الحفظ، حاول مرة أخرى");
     }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("🗑️ هل تريد حذف هذا الصنف نهائياً؟")) {
+    if (window.confirm("🗑️ هل تريد حذف هذا الصنف من المستودع؟")) {
       await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
       alert("✅ تم الحذف بنجاح");
       fetchProducts();
     }
   };
 
+  // لوحة الإدارة السريّة
+  if (isAdminPath) {
+    return (
+      <div className="App admin-theme">
+        <header className="admin-header">
+          <h1>⚙️ لوحة تحكم المدير</h1>
+          <div className="admin-nav">
+            <button onClick={() => setView('add')}>➕ إضافة بضاعة</button>
+            <button onClick={() => setView('reports')}>📊 التقارير</button>
+            <a href="/" className="exit-btn">🏠 خروج للمتجر</a>
+          </div>
+        </header>
+
+        <div className="admin-container">
+          {view === 'reports' ? (
+            <div className="reports-section">
+              <h2>📊 جرد المستودع الحالي</h2>
+              <div className="stats-box">
+                <div className="stat-card"><h3>إجمالي المنتجات</h3><p>{products.length}</p></div>
+                <div className="stat-card"><h3>قيمة المخزون</h3><p>{products.reduce((a,b)=>a+Number(b.price),0)} ريال</p></div>
+              </div>
+            </div>
+          ) : (
+            <div className="add-section">
+              <h2>📦 توريد بضاعة جديدة</h2>
+              <div className="modern-form">
+                <input placeholder="اسم القطعة" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                <input placeholder="السعر" type="number" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} />
+                <label className="upload-zone">
+                  {formData.image ? "🖼️ الصورة جاهزة" : "📤 رفع صورة القطعة"}
+                  <input type="file" accept="image/*" onChange={handleFileUpload} />
+                </label>
+                <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
+                  <option>كهرباء ⚡</option>
+                  <option>سباكة 💧</option>
+                </select>
+                <button onClick={handleAdd} className="action-btn">حفظ في المستودع 📦</button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // صفحة العميل (المعرض)
   return (
-    <div className="App">
-      <header className="navbar">
-        <div className="brand">💧 قطرة وشرارة ⚡</div>
-        <div className="nav-actions">
-          <button onClick={() => setView('store')}>🏠 المعرض</button>
-          {isAdmin && <button onClick={() => setView('reports')}>📊 التقارير</button>}
-          <button onClick={login} className="admin-btn">{isAdmin ? "👑 مدير" : "🔒 دخول"}</button>
+    <div className="App client-theme">
+      <header className="main-nav">
+        <div className="brand-box">
+          <span className="mini-title">مَتجر</span>
+          <h1 className="gold-title">قَطرة وشرارة</h1>
         </div>
       </header>
 
-      {isAdmin && view === 'store' && (
-        <section className="add-box">
-          <h2>📦 إضافة قطعة جديدة للمخزن</h2>
-          <div className="form-ui">
-            <input placeholder="اسم القطعة" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
-            <input placeholder="السعر (ريال)" type="number" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} />
-            <label className="upload-btn">
-               {formData.image ? "🖼️ صورة جاهزة" : "📤 رفع صورة القطعة"}
-              <input type="file" accept="image/*" onChange={handleFileUpload} />
-            </label>
-            <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
-              <option>كهرباء ⚡</option>
-              <option>سباكة 💧</option>
-            </select>
-            <button onClick={handleAdd} className="submit-btn">إضافة الآن 🚀</button>
-          </div>
-        </section>
-      )}
-
-      {view === 'reports' ? (
-        <div className="reports-view">
-          <h2>📊 جرد المستودع الحالي</h2>
-          <div className="stat-grid">
-            <div className="stat-item"><h3>عدد القطع</h3><p>{products.length}</p></div>
-            <div className="stat-item"><h3>إجمالي القيمة</h3><p>{products.reduce((a,b)=>a+Number(b.price),0)} ريال</p></div>
-          </div>
+      <main className="client-container">
+        <div className="search-wrapper">
+          <input type="text" placeholder="🔍 ابحث عن قطعة غيار..." />
         </div>
-      ) : (
-        <main className="gallery">
-          <div className="product-grid">
-            {products.map(p => (
-              <div key={p.id} className="item-card">
-                <img src={p.image} alt={p.name} />
-                <div className="details">
-                  <h4>{p.name}</h4>
-                  <p className="price-tag">{p.price} ريال</p>
-                  {isAdmin && <button className="trash-btn" onClick={() => handleDelete(p.id)}>🗑️ حذف</button>}
-                </div>
+
+        <div className="items-grid">
+          {products.map(p => (
+            <div key={p.id} className="item-card">
+              <div className="image-box"><img src={p.image} alt={p.name} /></div>
+              <div className="info-box">
+                <h4>{p.name}</h4>
+                <div className="price-tag">{p.price} <span>ريال</span></div>
+                <span className="category-label">{p.category}</span>
               </div>
-            ))}
-          </div>
-        </main>
-      )}
+            </div>
+          ))}
+        </div>
+      </main>
+      <footer className="footer">جميع الحقوق محفوظة لمتجر قطرة وشرارة 2026</footer>
     </div>
   );
 }
