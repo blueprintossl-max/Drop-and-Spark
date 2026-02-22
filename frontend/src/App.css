@@ -1,42 +1,39 @@
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
 
-:root { --navy: #0a192f; --gold: #D4AF37; --bg: #fdfdfd; }
-body { margin: 0; font-family: 'Tajawal', sans-serif; direction: rtl; background: var(--bg); color: var(--navy); }
+:root { --navy: #0a192f; --gold: #D4AF37; --white: #ffffff; --light: #f8f9fa; }
+body { margin: 0; font-family: 'Tajawal', sans-serif; direction: rtl; background: var(--light); }
 
-/* الهيدر الملكي */
-.hero { background: var(--navy); padding: 50px 20px; text-align: center; border-bottom: 5px solid var(--gold); }
-.sub-text { color: white; letter-spacing: 8px; font-size: 1.1rem; margin-bottom: -10px; opacity: 0.8; }
-.title-gold { color: var(--gold); font-size: 3.5rem; font-weight: 900; margin: 0; text-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+/* الهيدر الملكي الفاخر */
+.royal-header { background: var(--navy); padding: 20px 5%; display: flex; justify-content: space-between; align-items: center; border-bottom: 4px solid var(--gold); position: sticky; top: 0; z-index: 1000; }
+.logo { color: var(--gold); font-size: 1.8rem; font-weight: 900; }
+.logo span { color: var(--white); font-weight: 400; font-size: 1.2rem; margin: 0 5px; }
 
-/* حاوية المحتوى - حل مشكلة الانزياح */
-.container {
-  max-width: 1200px;
-  margin: 0 auto; /* هذا السطر يضمن التوسط في الكمبيوتر والجوال */
-  padding: 40px 20px;
+/* حل مشكلة سحب الشاشة لرؤية المنتج */
+.item-card { 
+  background: white; border-radius: 20px; overflow: hidden; 
+  box-shadow: 0 8px 20px rgba(0,0,0,0.05); display: flex; flex-direction: column;
+  height: 420px; /* طول ثابت للبطاقة لكي لا تخرج من الشاشة */
 }
+.img-wrapper { width: 100%; height: 220px; background: #eee; }
+.img-wrapper img { width: 100%; height: 100%; object-fit: contain; background: white; } /* contain يضمن رؤية الصورة كاملة */
 
-/* بطاقة المنتج */
-.store-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 30px; }
-.product-card { background: white; border-radius: 25px; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.05); transition: 0.4s; border: 1px solid #f0f0f0; }
-.product-card:hover { transform: translateY(-10px); box-shadow: 0 20px 45px rgba(0,0,0,0.1); }
-.img-holder { width: 100%; height: 280px; background: #eee; }
-.img-holder img { width: 100%; height: 100%; object-fit: cover; }
-.info { padding: 25px; text-align: center; }
-.info h4 { font-size: 1.4rem; margin: 10px 0; }
-.price-label { color: #27ae60; font-size: 1.8rem; font-weight: bold; }
-.price-label span { font-size: 1rem; color: #888; }
-.cat-tag { display: inline-block; background: #f0f0f0; padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; }
+.item-details { padding: 15px; flex: 1; display: flex; flex-direction: column; justify-content: space-between; text-align: center; }
+.item-details h4 { margin: 0; font-size: 1.1rem; color: var(--navy); }
+.price { color: #27ae60; font-weight: bold; font-size: 1.3rem; margin: 5px 0; }
+.buy-btn { background: var(--navy); color: var(--gold); border: 2px solid var(--gold); padding: 10px; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+.buy-btn:hover { background: var(--gold); color: var(--navy); }
 
-/* لوحة الإدارة السحرية */
-.admin-page .header-admin { background: #111; color: white; padding: 20px 5%; display: flex; justify-content: space-between; align-items: center; }
-.add-box { background: white; padding: 40px; border-radius: 30px; max-width: 600px; margin: 0 auto; box-shadow: 0 20px 60px rgba(0,0,0,0.1); }
-.add-box input, .add-box select { width: 100%; padding: 15px; margin-bottom: 20px; border: 2px solid #eee; border-radius: 12px; font-size: 1.1rem; }
-.file-label { display: block; background: #f8f9fa; border: 2px dashed var(--gold); padding: 40px; text-align: center; border-radius: 15px; cursor: pointer; color: var(--gold); font-weight: bold; margin-bottom: 20px; }
-.btn-save { width: 100%; background: #27ae60; color: white; padding: 18px; border: none; border-radius: 12px; font-size: 1.2rem; font-weight: bold; cursor: pointer; }
+/* سلة المشتريات */
+.cart-icon { background: none; border: 1px solid var(--gold); color: var(--gold); padding: 10px 15px; border-radius: 50px; cursor: pointer; position: relative; }
+.cart-icon span { position: absolute; top: -5px; right: -5px; background: red; color: white; padding: 2px 6px; border-radius: 50%; font-size: 0.7rem; }
+.cart-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 2000; }
+.modal-content { background: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 400px; text-align: center; }
+.wa-btn { background: #25d366; color: white; width: 100%; padding: 15px; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: bold; margin-top: 15px; cursor: pointer; }
 
-/* التقارير المصلحة */
-.stats { display: flex; gap: 30px; justify-content: center; flex-wrap: wrap; }
-.stat-box { background: white; padding: 50px; border-radius: 30px; min-width: 280px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border-bottom: 8px solid var(--gold); }
-.stat-box p { font-size: 3rem; font-weight: 900; color: var(--navy); margin: 0; }
+/* لوحة الإدارة */
+.admin-card { background: white; padding: 30px; border-radius: 25px; max-width: 500px; margin: 40px auto; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }
+.admin-card input, .admin-card select { width: 90%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 10px; }
+.gold-btn { background: var(--gold); color: var(--navy); width: 100%; padding: 15px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
 
-.footer-gold { background: var(--navy); color: var(--gold); text-align: center; padding: 20px; margin-top: 100px; font-weight: bold; }
+.product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; padding: 30px 5%; }
+.royal-footer { background: var(--navy); color: var(--gold); text-align: center; padding: 20px; margin-top: 50px; border-top: 3px solid var(--gold); }
