@@ -7,8 +7,6 @@ function App() {
   const [products, setProducts] = useState([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [view, setView] = useState('store');
-  const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({ name: '', price: '', image: '', category: 'كهرباء ⚡' });
 
   useEffect(() => { fetchProducts(); }, []);
@@ -21,87 +19,99 @@ function App() {
     } catch (e) { console.log("السيرفر نائم.."); }
   };
 
-  const handleCapture = (e) => {
+  const handleFileUpload = (e) => {
     const file = e.target.files[0];
     const reader = new FileReader();
-    reader.onloadend = () => setFormData({ ...formData, image: reader.result });
+    reader.onloadend = () => {
+      setFormData({ ...formData, image: reader.result });
+      alert("✅ تم رفع الصورة بنجاح وتجهيزها للعرض");
+    };
     if (file) reader.readAsDataURL(file);
   };
 
+  const login = () => {
+    const p = prompt("أدخل كلمة المرور:");
+    if (p === "123") {
+      setIsAdmin(true);
+      alert("🔓 أهلاً بك يا مدير المتجر، تم تفعيل لوحة التحكم");
+    } else { alert("❌ عذراً، كلمة المرور خاطئة"); }
+  };
+
   const handleAdd = async () => {
-    if (!formData.name || !formData.price || !formData.image) return alert("⚠️ صور المنتج وأكمل البيانات");
-    setLoading(true);
-    await fetch(API_URL, {
+    if (!formData.name || !formData.price || !formData.image) return alert("⚠️ يرجى إكمال البيانات ورفع الصورة أولاً");
+    
+    const res = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(formData)
     });
-    setFormData({ name: '', price: '', image: '', category: 'كهرباء ⚡' });
-    await fetchProducts();
-    setLoading(false);
+
+    if (res.ok) {
+      alert("🚀 رائع! تم حفظ المنتج بنجاح وسيظهر الآن للعملاء");
+      setFormData({ name: '', price: '', image: '', category: 'كهرباء ⚡' });
+      fetchProducts();
+    } else {
+      alert("❌ حدث خطأ أثناء الحفظ، حاول مرة أخرى");
+    }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("هل أنت متأكد من الحذف؟")) {
+    if (window.confirm("🗑️ هل تريد حذف هذا الصنف نهائياً؟")) {
       await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+      alert("✅ تم الحذف بنجاح");
       fetchProducts();
     }
   };
 
-  const filtered = products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
-  const totalValue = products.reduce((acc, p) => acc + Number(p.price), 0);
-
   return (
     <div className="App">
-      <nav className="navbar">
-        <div className="logo">💧 قطرة وشرارة ⚡</div>
-        <div className="nav-links">
+      <header className="navbar">
+        <div className="brand">💧 قطرة وشرارة ⚡</div>
+        <div className="nav-actions">
           <button onClick={() => setView('store')}>🏠 المعرض</button>
           {isAdmin && <button onClick={() => setView('reports')}>📊 التقارير</button>}
-          <button onClick={() => { if(prompt("كلمة السر:") === "123") setIsAdmin(!isAdmin); }}>🔒</button>
+          <button onClick={login} className="admin-btn">{isAdmin ? "👑 مدير" : "🔒 دخول"}</button>
         </div>
-      </nav>
+      </header>
 
       {isAdmin && view === 'store' && (
-        <div className="admin-section">
-          <h2>📦 إضافة بضاعة جديدة</h2>
-          <div className="form">
-            <input placeholder="اسم المنتج" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
-            <input placeholder="السعر" type="number" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} />
-            <label className="camera-label">
-              {formData.image ? "✅ تم التصوير" : "📸 تصوير المنتج الآن"}
-              <input type="file" accept="image/*" capture="environment" onChange={handleCapture} />
+        <section className="add-box">
+          <h2>📦 إضافة قطعة جديدة للمخزن</h2>
+          <div className="form-ui">
+            <input placeholder="اسم القطعة" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+            <input placeholder="السعر (ريال)" type="number" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} />
+            <label className="upload-btn">
+               {formData.image ? "🖼️ صورة جاهزة" : "📤 رفع صورة القطعة"}
+              <input type="file" accept="image/*" onChange={handleFileUpload} />
             </label>
             <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
               <option>كهرباء ⚡</option>
               <option>سباكة 💧</option>
             </select>
-            <button onClick={handleAdd} disabled={loading}>{loading ? "جاري الحفظ..." : "إضافة للمخزن 🚀"}</button>
+            <button onClick={handleAdd} className="submit-btn">إضافة الآن 🚀</button>
           </div>
-        </div>
+        </section>
       )}
 
       {view === 'reports' ? (
-        <div className="reports-page">
-          <h2>📊 التحليل المالي للمستودع</h2>
-          <div className="stats-grid">
-            <div className="stat"><h3>إجمالي الأصناف</h3><p>{products.length}</p></div>
-            <div className="stat"><h3>قيمة المخزون</h3><p>{totalValue} ريال</p></div>
+        <div className="reports-view">
+          <h2>📊 جرد المستودع الحالي</h2>
+          <div className="stat-grid">
+            <div className="stat-item"><h3>عدد القطع</h3><p>{products.length}</p></div>
+            <div className="stat-item"><h3>إجمالي القيمة</h3><p>{products.reduce((a,b)=>a+Number(b.price),0)} ريال</p></div>
           </div>
         </div>
       ) : (
-        <main>
-          <div className="search-box">
-            <input placeholder="🔍 ابحث عن قطعة غيار..." onChange={e => setSearch(e.target.value)} />
-          </div>
+        <main className="gallery">
           <div className="product-grid">
-            {filtered.map(p => (
-              <div key={p.id} className="product-card">
-                <div className="img-container"><img src={p.image} alt={p.name} /></div>
-                <h3>{p.name}</h3>
-                <p className="price">{p.price} ريال</p>
-                <span className="tag">{p.category}</span>
-                {isAdmin && <button className="del-btn" onClick={() => handleDelete(p.id)}>🗑️ حذف</button>}
+            {products.map(p => (
+              <div key={p.id} className="item-card">
+                <img src={p.image} alt={p.name} />
+                <div className="details">
+                  <h4>{p.name}</h4>
+                  <p className="price-tag">{p.price} ريال</p>
+                  {isAdmin && <button className="trash-btn" onClick={() => handleDelete(p.id)}>🗑️ حذف</button>}
+                </div>
               </div>
             ))}
           </div>
