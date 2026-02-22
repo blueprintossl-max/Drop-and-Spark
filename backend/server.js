@@ -1,44 +1,38 @@
 const express = require('express');
 const cors = require('cors');
-const { Pool } = require('pg');
+const { postgres } = require('postgres');
 require('dotenv').config();
 
 const app = express();
+app.use(cors());
+app.use(express.json());
 
-app.use(cors()); 
-app.use(express.json()); 
+const sql = postgres(process.env.DATABASE_URL, { ssl: 'require' });
 
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
-});
-
+// 1. جلب كل المنتجات
 app.get('/api/products', async (req, res) => {
-    try {
-        const result = await pool.query('SELECT * FROM products ORDER BY id DESC');
-        res.json(result.rows);
-    } catch (err) { 
-        console.error("❌ عطل في جلب القاعدة:", err.message);
-        res.status(500).json({ error: "خطأ في القاعدة" }); 
-    }
+  try {
+    const products = await sql`SELECT * FROM products ORDER BY id DESC`;
+    res.json(products);
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// 2. إضافة منتج جديد (مع الصورة)
 app.post('/api/products', async (req, res) => {
-    try {
-        const { name, price, category } = req.body;
-        const result = await pool.query(
-            'INSERT INTO products (name, price, category) VALUES ($1, $2, $3) RETURNING *',
-            [name, price, category]
-        );
-        res.status(201).json(result.rows[0]);
-    } catch (err) {
-        console.error("❌ عطل في الحفظ:", err.message);
-        res.status(500).json({ error: err.message });
-    }
+  const { name, price, category, image } = req.body;
+  try {
+    const result = await sql`INSERT INTO products (name, price, category, image) VALUES (${name}, ${price}, ${category}, ${image}) RETURNING *`;
+    res.json(result[0]);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// 3. حذف منتج (جديد ✨)
+app.delete('/api/products/:id', async (req, res) => {
+  try {
+    await sql`DELETE FROM products WHERE id = ${req.params.id}`;
+    res.json({ message: "تم الحذف بنجاح" });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    // 👇 هنا تم تحديث رسالة السجلات 👇
-    console.log(`🚀 محرك متجر 💧 قطرة و⚡ شرارة متصل بالسحاب ويعمل على المنفذ ${PORT}`);
-});
+app.listen(PORT, () => console.log(`🚀 المحرك يعمل على منفذ ${PORT}`));

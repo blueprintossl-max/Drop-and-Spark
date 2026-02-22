@@ -3,111 +3,99 @@ import './App.css';
 
 const API_URL = 'https://drop-and-spark-1.onrender.com/api/products';
 
-// 🔑 كلمة المرور الخاصة بك (يمكنك تغييرها لأي رقم أو كلمة تريدها)
-const ADMIN_PASSWORD = "123"; 
-
 function App() {
   const [products, setProducts] = useState([]);
-  const [name, setName] = useState('');
-  const [price, setPrice] = useState('');
-  const [category, setCategory] = useState('كهرباء ⚡');
-  
-  // 🛡️ حالة جديدة لمعرفة هل المستخدم الحالي هو المدير أم زائر عادي (الافتراضي: زائر)
+  const [search, setSearch] = useState('');
+  const [formData, setFormData] = useState({ name: '', price: '', image: '', category: 'كهرباء ⚡' });
   const [isAdmin, setIsAdmin] = useState(false);
+  const [view, setView] = useState('store'); // store أو reports
 
-  useEffect(() => {
-    fetch(API_URL)
-      .then(res => res.json())
-      .then(data => setProducts(data))
-      .catch(err => console.error("❌ خطأ في جلب البيانات:", err));
-  }, []);
+  useEffect(() => { fetchProducts(); }, []);
 
-  const addProduct = async () => {
-    if (!name || !price) return alert("⚠️ الرجاء إكمال اسم المنتج والسعر");
-    
-    try {
-      const res = await fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, price, category })
-      });
-      
-      const data = await res.json();
+  const fetchProducts = () => {
+    fetch(API_URL).then(res => res.json()).then(data => setProducts(data));
+  };
 
-      if (res.ok) {
-        setProducts([data, ...products]);
-        setName(''); 
-        setPrice('');
-        alert("✅ تمت إضافة المنتج للمخزن بنجاح!");
-      } else {
-        alert(`❌ فشل الحفظ: ${data.error}`);
-      }
-    } catch (err) {
-      alert("تعذر الاتصال بالخادم.");
+  const handleAdd = async () => {
+    if (!formData.name || !formData.price) return alert("الرجاء إكمال البيانات");
+    await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData)
+    });
+    setFormData({ name: '', price: '', image: '', category: 'كهرباء ⚡' });
+    fetchProducts();
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("هل أنت متأكد من حذف هذا المنتج؟")) {
+      await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+      fetchProducts();
     }
   };
 
-  // 🚪 دالة تسجيل الدخول والخروج للمدير
-  const handleAdminLogin = () => {
-    if (isAdmin) {
-      // إذا كان مديراً بالفعل وضغط على الزر، نقوم بتسجيل خروجه
-      setIsAdmin(false);
-      return;
-    }
-    
-    // إذا كان زائراً، نطلب منه كلمة المرور
-    const pass = prompt("🔒 الرجاء إدخال كلمة المرور للوصول إلى لوحة تحكم المدير:");
-    if (pass === ADMIN_PASSWORD) {
-      setIsAdmin(true);
-    } else if (pass !== null) { // إذا لم يضغط على "إلغاء"
-      alert("❌ كلمة المرور خاطئة! غير مصرح لك بالدخول.");
-    }
-  };
+  const filtered = products.filter(p => p.name.includes(search));
+  
+  // التقارير (إحصائيات ذكية)
+  const totalValue = products.reduce((acc, p) => acc + Number(p.price), 0);
+  const electricityCount = products.filter(p => p.category.includes('كهرباء')).length;
+  const plumbingCount = products.filter(p => p.category.includes('سباكة')).length;
 
   return (
-    <div className="App" style={{ direction: 'rtl', padding: '20px', maxWidth: '800px', margin: 'auto' }}>
-      
-      {/* --- قسم العنوان (يحتوي على زر القفل المخفي) --- */}
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #ddd', paddingBottom: '10px', marginBottom: '20px' }}>
-        <h1 style={{ margin: 0 }}>متجر 💧 قطرة و⚡ شرارة</h1>
-        <button 
-          onClick={handleAdminLogin} 
-          style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '25px' }}
-          title="دخول المدير"
-        >
-          {isAdmin ? '🚪' : '🔒'}
-        </button>
+    <div className="App">
+      <header className="main-header">
+        <h1>💧 متجر قطرة وشرارة ⚡</h1>
+        <div className="nav-btns">
+          <button onClick={() => setView('store')}>🏠 المتجر</button>
+          {isAdmin && <button onClick={() => setView('reports')}>📊 التقارير</button>}
+          <button className="lock-btn" onClick={() => { if(prompt("كلمة المرور:") === "123") setIsAdmin(!isAdmin); }}>🔒</button>
+        </div>
       </header>
-      
-      {/* --- لوحة تحكم المدير (تظهر فقط إذا كان isAdmin يساوي true) --- */}
-      {isAdmin && (
-        <div style={{ background: '#fff3cd', padding: '20px', borderRadius: '10px', border: '2px dashed #ffc107', marginBottom: '30px' }}>
-          <h3 style={{ color: '#856404', marginTop: 0 }}>🛠️ لوحة تحكم المدير (إضافة منتج جديد)</h3>
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
-            <input placeholder="اسم المنتج" value={name} onChange={e => setName(e.target.value)} style={{ padding: '8px' }} />
-            <input placeholder="السعر" type="number" value={price} onChange={e => setPrice(e.target.value)} style={{ padding: '8px', width: '100px' }} />
-            <select value={category} onChange={e => setCategory(e.target.value)} style={{ padding: '8px' }}>
-              <option value="كهرباء ⚡">أدوات كهرباء ⚡</option>
-              <option value="سباكة 💧">أدوات سباكة 💧</option>
-            </select>
-            <button onClick={addProduct} style={{ background: '#28a745', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '5px', cursor: 'pointer' }}>
-              إضافة للمخزن 🚀
-            </button>
-          </div>
+
+      {isAdmin && view === 'store' && (
+        <div className="admin-panel">
+          <h3>➕ إضافة بضاعة جديدة</h3>
+          <input placeholder="اسم المنتج" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+          <input placeholder="السعر" type="number" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} />
+          <input placeholder="رابط الصورة من جوجل" value={formData.image} onChange={e => setFormData({...formData, image: e.target.value})} />
+          <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
+            <option>كهرباء ⚡</option>
+            <option>سباكة 💧</option>
+          </select>
+          <button className="add-btn" onClick={handleAdd}>تخزين في المستودع 📦</button>
         </div>
       )}
-      
-      {/* --- قسم عرض البضائع (يظهر للجميع دائماً) --- */}
-      <h2>📦 بضائع المتجر الحالية</h2>
-      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '15px' }}>
-        {products.map((p, i) => (
-          <div key={i} style={{ border: '1px solid #ddd', padding: '15px', borderRadius: '8px', minWidth: '150px', background: '#f9f9f9', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-            <h3 style={{ margin: '0 0 10px 0', color: '#333' }}>{p.name}</h3>
-            <p style={{ fontWeight: 'bold', color: '#007bff', fontSize: '18px', margin: '5px 0' }}>{p.price} ريال</p>
-            <p style={{ color: '#666', margin: 0 }}>{p.category}</p>
+
+      {view === 'reports' ? (
+        <div className="reports-section">
+          <h2>📊 تقرير المخزون الحالي</h2>
+          <div className="stats-grid">
+            <div className="stat-card"><h3>إجمالي المنتجات</h3><p>{products.length}</p></div>
+            <div className="stat-card"><h3>قيمة البضائع</h3><p>{totalValue} ريال</p></div>
+            <div className="stat-card"><h3>أدوات الكهرباء</h3><p>{electricityCount}</p></div>
+            <div className="stat-card"><h3>أدوات السباكة</h3><p>{plumbingCount}</p></div>
           </div>
-        ))}
-      </div>
+        </div>
+      ) : (
+        <>
+          <div className="search-bar">
+            <input placeholder="🔍 ابحث عن منتج..." value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
+          <div className="grid">
+            {filtered.map(p => (
+              <div key={p.id} className="card">
+                <img src={p.image || 'https://via.placeholder.com/150'} alt={p.name} />
+                <div className="card-info">
+                  <h4>{p.name}</h4>
+                  <p className="price">{p.price} ريال</p>
+                  <span className="cat-tag">{p.category}</span>
+                  {isAdmin && <button className="del-btn" onClick={() => handleDelete(p.id)}>🗑️ حذف</button>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
