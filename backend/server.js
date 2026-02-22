@@ -9,19 +9,19 @@ app.use(express.json({ limit: '20mb' }));
 
 const sql = postgres(process.env.DATABASE_URL, { ssl: 'require' });
 
-// إعدادات المتجر (الجوال والاسم)
+// --- إدارة إعدادات المتجر ---
 app.get('/api/settings', async (req, res) => {
   const s = await sql`SELECT * FROM settings WHERE id = 1`;
   res.json(s[0]);
 });
 
 app.put('/api/settings', async (req, res) => {
-  const { phone } = req.body;
-  const s = await sql`UPDATE settings SET phone=${phone} WHERE id=1 RETURNING *`;
+  const { phone, email, shop_name } = req.body;
+  const s = await sql`UPDATE settings SET phone=${phone}, email=${email}, shop_name=${shop_name} WHERE id=1 RETURNING *`;
   res.json(s[0]);
 });
 
-// إدارة المنتجات
+// --- إدارة المنتجات والمخزون ---
 app.get('/api/products', async (req, res) => {
   res.json(await sql`SELECT * FROM products ORDER BY id DESC`);
 });
@@ -38,6 +38,11 @@ app.put('/api/products/:id', async (req, res) => {
   const r = await sql`UPDATE products SET name=${name}, price=${price}, old_price=${old_price}, stock=${stock}, 
   category=${category}, image=${image}, is_sale=${is_sale}, out_of_stock=${out_of_stock} WHERE id=${req.params.id} RETURNING *`;
   res.json(r[0]);
+});
+
+app.delete('/api/products/:id', async (req, res) => {
+  await sql`DELETE FROM products WHERE id = ${req.params.id}`;
+  res.json({ success: true });
 });
 
 const PORT = process.env.PORT || 5000;

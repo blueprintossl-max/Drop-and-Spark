@@ -1,22 +1,27 @@
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
-:root { --navy: #0a192f; --gold: #D4AF37; }
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&family=Amiri:wght@700&display=swap');
+:root { --navy: #0a192f; --gold: #D4AF37; --white: #fff; }
 body { margin: 0; font-family: 'Tajawal', sans-serif; direction: rtl; background: #fdfdfd; }
 
-/* حل تباعد المنتجات */
-.container-p { max-width: 1200px; margin: 0 auto; padding: 20px; }
-.grid-p { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
-.card-p { background: white; border-radius: 15px; border: 1px solid #eee; overflow: hidden; height: 380px; text-align: center; display: flex; flex-direction: column; }
-.img-p { height: 200px; background: #f9f9f9; }
-.img-p img { width: 100%; height: 100%; object-fit: contain; }
+/* حل تباعد المعرض */
+.gallery-container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+.p-grid-royal { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
+.royal-p-card { background: white; border-radius: 15px; border: 1px solid #eee; overflow: hidden; height: 390px; text-align: center; display: flex; flex-direction: column; transition: 0.3s; position: relative; }
+.p-img-box { height: 210px; background: #f9f9f9; }
+.p-img-box img { width: 100%; height: 100%; object-fit: contain; } /* يمنع تضخم الصورة */
 
-/* الإدارة 30/70 */
+/* الإدارة 30/70 إجباري ثابت */
 .admin-root { display: flex; height: 100vh; overflow: hidden; }
-.sidebar-30 { flex: 0 0 30%; background: var(--navy); color: white; border-left: 3px solid var(--gold); display: flex; flex-direction: column; }
+.sidebar-30 { flex: 0 0 30%; background: var(--navy); border-left: 4px solid var(--gold); display: flex; flex-direction: column; color: white; }
 .content-70 { flex: 0 0 70%; background: #f4f7f6; padding: 40px; overflow-y: auto; }
 
-/* تغير ألوان الأزرار التفاعلية */
+/* تغير ألوان الأزرار التفاعلية فوراً */
 .t-btn { flex: 1; padding: 15px; border-radius: 10px; border: 2px solid #ddd; background: white; cursor: pointer; font-weight: bold; transition: 0.3s; }
-.t-btn.sale.on { background: #ff4757; color: white; border-color: #ff4757; box-shadow: 0 5px 15px rgba(255, 71, 87, 0.3); }
-.t-btn.stock.on { background: #555; color: white; border-color: #555; }
+.t-btn.on { background: var(--gold); color: var(--navy); border-color: var(--gold); box-shadow: 0 5px 15px rgba(212, 175, 55, 0.4); }
 
-.toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--navy); padding: 12px 40px; border-radius: 50px; font-weight: 900; z-index: 5000; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+/* السلة اليسرى العملاقة (420px) */
+.cart-left-panel { position: fixed; left: -450px; top: 0; width: 420px; height: 100vh; background: var(--navy); color: white; transition: 0.5s ease-in-out; z-index: 3000; border-right: 6px solid var(--gold); box-shadow: 15px 0 60px rgba(0,0,0,0.6); }
+.cart-left-panel.open { left: 0; }
+.total-gold-box { font-size: 2rem; font-weight: 900; color: var(--gold); border-top: 2px solid #ffffff33; margin-top: 30px; padding-top: 20px; }
+
+/* الإشعارات */
+.toast-notification { position: fixed; top: 30px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--navy); padding: 15px 45px; border-radius: 50px; font-weight: 900; z-index: 5000; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
