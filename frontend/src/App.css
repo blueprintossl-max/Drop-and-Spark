@@ -1,20 +1,42 @@
-:root { --main: #0a192f; --gold: #ffd700; --accent: #27ae60; --bg: #f8f9fa; }
-body { background: var(--bg); font-family: 'Tajawal', sans-serif; direction: rtl; margin: 0; }
-.navbar { background: var(--main); padding: 1rem 5%; display: flex; justify-content: space-between; align-items: center; color: white; position: sticky; top: 0; z-index: 1000; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
-.logo { font-size: 1.5rem; font-weight: bold; color: var(--gold); }
-.nav-links button { background: none; border: 1px solid var(--gold); color: var(--gold); padding: 5px 15px; margin-left: 10px; border-radius: 20px; cursor: pointer; transition: 0.3s; }
-.nav-links button:hover { background: var(--gold); color: var(--main); }
-.admin-section { background: white; max-width: 600px; margin: 2rem auto; padding: 2rem; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
-.form input, .form select { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; }
-.camera-label { display: block; background: #eee; padding: 20px; text-align: center; border: 2px dashed #ccc; border-radius: 8px; cursor: pointer; margin: 10px 0; }
-.camera-label input { display: none; }
-.form button { width: 100%; background: var(--accent); color: white; padding: 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
-.product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 2rem; padding: 2rem 5%; }
-.product-card { background: white; border-radius: 15px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.05); transition: 0.3s; text-align: center; }
-.product-card:hover { transform: translateY(-10px); }
-.img-container { width: 100%; height: 200px; background: #eee; }
-.img-container img { width: 100%; height: 100%; object-fit: cover; }
-.price { color: var(--accent); font-size: 1.4rem; font-weight: bold; }
-.del-btn { background: #ff4757; color: white; border: none; padding: 5px 20px; border-radius: 5px; cursor: pointer; margin-bottom: 15px; }
-.stats-grid { display: flex; gap: 2rem; justify-content: center; padding: 2rem; }
-.stat { background: white; padding: 2rem; border-radius: 15px; width: 200px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.1); border-top: 5px solid var(--gold); }
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
+
+:root { --navy: #0a192f; --gold: #D4AF37; --bg: #fdfdfd; }
+body { margin: 0; font-family: 'Tajawal', sans-serif; direction: rtl; background: var(--bg); color: var(--navy); }
+
+/* الهيدر الملكي */
+.hero { background: var(--navy); padding: 50px 20px; text-align: center; border-bottom: 5px solid var(--gold); }
+.sub-text { color: white; letter-spacing: 8px; font-size: 1.1rem; margin-bottom: -10px; opacity: 0.8; }
+.title-gold { color: var(--gold); font-size: 3.5rem; font-weight: 900; margin: 0; text-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+
+/* حاوية المحتوى - حل مشكلة الانزياح */
+.container {
+  max-width: 1200px;
+  margin: 0 auto; /* هذا السطر يضمن التوسط في الكمبيوتر والجوال */
+  padding: 40px 20px;
+}
+
+/* بطاقة المنتج */
+.store-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 30px; }
+.product-card { background: white; border-radius: 25px; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.05); transition: 0.4s; border: 1px solid #f0f0f0; }
+.product-card:hover { transform: translateY(-10px); box-shadow: 0 20px 45px rgba(0,0,0,0.1); }
+.img-holder { width: 100%; height: 280px; background: #eee; }
+.img-holder img { width: 100%; height: 100%; object-fit: cover; }
+.info { padding: 25px; text-align: center; }
+.info h4 { font-size: 1.4rem; margin: 10px 0; }
+.price-label { color: #27ae60; font-size: 1.8rem; font-weight: bold; }
+.price-label span { font-size: 1rem; color: #888; }
+.cat-tag { display: inline-block; background: #f0f0f0; padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; }
+
+/* لوحة الإدارة السحرية */
+.admin-page .header-admin { background: #111; color: white; padding: 20px 5%; display: flex; justify-content: space-between; align-items: center; }
+.add-box { background: white; padding: 40px; border-radius: 30px; max-width: 600px; margin: 0 auto; box-shadow: 0 20px 60px rgba(0,0,0,0.1); }
+.add-box input, .add-box select { width: 100%; padding: 15px; margin-bottom: 20px; border: 2px solid #eee; border-radius: 12px; font-size: 1.1rem; }
+.file-label { display: block; background: #f8f9fa; border: 2px dashed var(--gold); padding: 40px; text-align: center; border-radius: 15px; cursor: pointer; color: var(--gold); font-weight: bold; margin-bottom: 20px; }
+.btn-save { width: 100%; background: #27ae60; color: white; padding: 18px; border: none; border-radius: 12px; font-size: 1.2rem; font-weight: bold; cursor: pointer; }
+
+/* التقارير المصلحة */
+.stats { display: flex; gap: 30px; justify-content: center; flex-wrap: wrap; }
+.stat-box { background: white; padding: 50px; border-radius: 30px; min-width: 280px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border-bottom: 8px solid var(--gold); }
+.stat-box p { font-size: 3rem; font-weight: 900; color: var(--navy); margin: 0; }
+
+.footer-gold { background: var(--navy); color: var(--gold); text-align: center; padding: 20px; margin-top: 100px; font-weight: bold; }

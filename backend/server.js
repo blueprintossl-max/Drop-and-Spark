@@ -5,7 +5,7 @@ require('dotenv').config();
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: '15mb' })); // رفع الحد لاستيعاب صور الجوال عالية الدقة
+app.use(express.json({ limit: '20mb' })); 
 
 const sql = postgres(process.env.DATABASE_URL, { ssl: 'require' });
 
@@ -21,7 +21,7 @@ app.post('/api/products', async (req, res) => {
   try {
     const result = await sql`INSERT INTO products (name, price, category, image) VALUES (${name}, ${price}, ${category}, ${image}) RETURNING *`;
     res.json(result[0]);
-  } catch (err) { res.status(500).json({ error: "تأكد من تنفيذ أمر SQL في Neon لعمود الصور" }); }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.delete('/api/products/:id', async (req, res) => {
