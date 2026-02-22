@@ -1,35 +1,36 @@
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
-:root { --navy: #0a192f; --gold: #D4AF37; --white: #fff; }
-body { margin: 0; font-family: 'Tajawal', sans-serif; direction: rtl; background: #fdfdfd; }
+:root { --navy: #0a192f; --gold: #D4AF37; --white: #fff; --red: #ff4757; --green: #27ae60; }
+body { margin: 0; font-family: 'Tajawal', sans-serif; direction: rtl; }
 
-/* الإدارة 30/70 إجباري */
+/* الإدارة 30/70 */
 .admin-root { display: flex; height: 100vh; overflow: hidden; }
-.sidebar-fixed { flex: 0 0 30%; background: white; border-left: 3px solid var(--gold); display: flex; flex-direction: column; }
-.main-editor { flex: 0 0 70%; background: #f4f7f6; padding: 40px; overflow-y: auto; }
+.sidebar-30 { flex: 0 0 30%; background: var(--navy); border-left: 3px solid var(--gold); display: flex; flex-direction: column; }
+.content-70 { flex: 0 0 70%; background: #fdfdfd; padding: 40px; overflow-y: auto; }
 
-.admin-header-box { background: var(--navy); color: var(--gold); padding: 25px; font-weight: 900; text-align: center; font-size: 1.3rem; }
-.admin-tools { padding: 15px; background: #f9f9f9; border-bottom: 1px solid #eee; }
-.cat-nav { display: flex; gap: 5px; margin-bottom: 10px; }
-.cat-nav button { flex: 1; border: 1px solid #ddd; padding: 5px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; }
-.cat-nav button.active { background: var(--navy); color: white; }
-.search-in { width: 92%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; }
+/* أزرار الحالة التفاعلية */
+.status-toggles { display: flex; gap: 15px; margin: 20px 0; }
+.toggle-btn { 
+  flex: 1; padding: 15px; border-radius: 12px; border: 2px solid #eee; 
+  background: white; cursor: pointer; font-weight: bold; transition: 0.3s;
+}
+/* تغير اللون عند تفعيل "عرض خاص" */
+.toggle-btn.sale.active { background: #fff0f0; border-color: var(--red); color: var(--red); box-shadow: 0 5px 15px rgba(255, 71, 87, 0.2); }
+/* تغير اللون عند تفعيل "نفذت الكمية" */
+.toggle-btn.stock.active { background: #f0f0f0; border-color: #555; color: #555; opacity: 0.7; }
 
-.admin-list-scroll { flex: 1; overflow-y: auto; }
-.admin-item-row { display: flex; align-items: center; padding: 12px; border-bottom: 1px solid #f0f0f0; cursor: pointer; }
-.admin-item-row:hover { background: #fffbeb; }
-.row-img { width: 55px; height: 55px; border-radius: 8px; object-fit: cover; margin-left: 12px; border: 1px solid #ddd; }
-.row-n { font-weight: bold; margin: 0; font-size: 0.95rem; }
-.row-s { font-size: 0.8rem; color: #666; margin: 0; }
+/* إشعار الحفظ التلقائي */
+.toast-notification {
+  position: fixed; top: 30px; left: 50%; transform: translateX(-50%);
+  background: var(--gold); color: var(--navy); padding: 15px 40px;
+  border-radius: 50px; font-weight: 900; z-index: 5000;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2); animation: slideDown 0.3s ease-out;
+}
+@keyframes slideDown { from { top: -50px; opacity: 0; } to { top: 30px; opacity: 1; } }
 
-/* السلة الجانبية الكبيرة جداً */
-.cart-side-panel { position: fixed; left: -450px; top: 0; width: 420px; height: 100vh; background: var(--navy); color: white; transition: 0.4s ease-in-out; z-index: 3000; box-shadow: 10px 0 40px rgba(0,0,0,0.5); border-right: 6px solid var(--gold); }
-.cart-side-panel.open { left: 0; }
-.cart-inner { padding: 40px; }
-.total-box { font-size: 1.8rem; font-weight: 900; color: var(--gold); border-top: 2px solid #ffffff33; margin-top: 30px; padding-top: 20px; }
-
-/* التنبيهات */
-.floating-alert { position: fixed; top: 30px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--navy); padding: 15px 35px; border-radius: 50px; font-weight: 900; z-index: 4000; box-shadow: 0 10px 30px rgba(0,0,0,0.2); animation: popIn 0.3s ease; }
-@keyframes popIn { from { transform: translateX(-50%) translateY(-50px); opacity: 0; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
-
-/* صورة المنتج (العميل) لعدم السحب */
-.p-img img { width: 100%; height: 230px; object-fit: contain; background: #fff; }
+/* زر الحفظ الملكي */
+.save-action-btn {
+  width: 100%; background: var(--navy); color: var(--gold); padding: 20px;
+  border: 2px solid var(--gold); border-radius: 12px; font-size: 1.2rem; font-weight: 900;
+  cursor: pointer; transition: 0.3s;
+}
+.save-action-btn:hover { background: var(--gold); color: var(--navy); }
