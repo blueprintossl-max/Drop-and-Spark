@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 
-const API_URL = 'https://drop-and-spark.onrender.com/api/products';
+const API_URL = 'https://drop-and-spark-1.onrender.com/api/products';
 
 // 🔑 كلمة المرور الخاصة بك (يمكنك تغييرها لأي رقم أو كلمة تريدها)
 const ADMIN_PASSWORD = "123"; 
