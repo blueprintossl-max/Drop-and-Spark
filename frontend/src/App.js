@@ -4,16 +4,12 @@ import './App.css';
 const API_URL = 'https://drop-and-spark-1.onrender.com/api';
 
 function App() {
-  // --- الحالات العامة ---
   const [products, setProducts] = useState([]);
   const [settings, setSettings] = useState({ phone: '', email: '', shop_name: 'قطرة وشرارة', admin_pin: '123456' });
   const [cart, setCart] = useState([]);
   const [alert, setAlert] = useState(null);
-  
-  // تأثير نبض السلة
   const [bumpCart, setBumpCart] = useState(false);
   
-  // --- حالات الإدارة ---
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pinInput, setPinInput] = useState('');
   const [adminView, setAdminView] = useState('inventory');
@@ -22,30 +18,52 @@ function App() {
   const [editingItem, setEditingItem] = useState(null);
   const [formData, setFormData] = useState({ name: '', price: '', old_price: '', stock: 0, category: 'كهرباء ⚡', image: '', is_sale: false, out_of_stock: false });
   
-  // --- حالات العميل ---
   const [showCart, setShowCart] = useState(false);
   const [clientCat, setClientCat] = useState('الكل');
   const [itemQtys, setItemQtys] = useState({});
 
   const isAdmin = window.location.pathname.includes('/admin');
 
-  // 🛠️ الإصلاح الجذري للسرعة: جلب البيانات مرة واحدة فقط عند فتح الموقع
   useEffect(() => {
-    fetchProducts(); 
-    fetchSettings();
-  }, []); // الأقواس الفارغة هنا تمنع التكرار والبطء نهائياً!
+    fetchProducts(); fetchSettings();
+  }, []); 
 
-  // 🛠️ التحكم في إخفاء الإشعارات فقط دون إعادة تحميل المنتجات
   useEffect(() => {
     if (alert) {
       const timer = setTimeout(() => setAlert(null), 3000);
-      return () => clearTimeout(timer); // تنظيف الذاكرة
+      return () => clearTimeout(timer);
     }
   }, [alert]);
 
-  // --- دوال الاتصال بقاعدة البيانات ---
   const fetchProducts = () => fetch(`${API_URL}/products`).then(r => r.json()).then(setProducts);
   const fetchSettings = () => fetch(`${API_URL}/settings`).then(r => r.json()).then(setSettings);
+
+  // 🛠️ ضاغط الصور الذكي (يصغر حجم الصورة لتسريع المتجر)
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    setAlert("⏳ جاري ضغط ومعالجة الصورة...");
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 600; // أقصى عرض للصورة لضمان السرعة
+        const scaleSize = MAX_WIDTH / img.width;
+        canvas.width = MAX_WIDTH;
+        canvas.height = img.height * scaleSize;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6); // ضغط بنسبة 60%
+        setFormData({ ...formData, image: compressedBase64 });
+        setAlert("✅ تم ضغط ورفع الصورة بنجاح");
+      };
+    };
+  };
 
   const handleSave = async () => {
     const method = editingItem ? 'PUT' : 'POST';
@@ -66,7 +84,6 @@ function App() {
     fetchProducts();
   };
 
-  // --- دوال العميل والسلة ---
   const handleQtyChange = (id, change) => {
     setItemQtys(prev => ({ ...prev, [id]: Math.max(1, (prev[id] || 1) + change) }));
   };
@@ -74,19 +91,13 @@ function App() {
   const addToCart = (product) => {
     const qtyToAdd = itemQtys[product.id] || 1;
     const existingItemIndex = cart.findIndex(item => item.id === product.id);
-    
     if (existingItemIndex >= 0) {
       const newCart = [...cart];
       newCart[existingItemIndex].qty += qtyToAdd;
       setCart(newCart);
-    } else { 
-      setCart([...cart, { ...product, qty: qtyToAdd }]); 
-    }
-    
+    } else { setCart([...cart, { ...product, qty: qtyToAdd }]); }
     setAlert(`✅ تم إضافة ${qtyToAdd} قطعة للسلة`);
-    setItemQtys(prev => ({ ...prev, [product.id]: 1 })); // تصفير العداد بعد الإضافة
-    
-    // تفعيل نبض السلة لشد الانتباه
+    setItemQtys(prev => ({ ...prev, [product.id]: 1 })); 
     setBumpCart(true);
     setTimeout(() => setBumpCart(false), 300);
   };
@@ -99,10 +110,9 @@ function App() {
   };
 
   // =========================================================================
-  // 1. واجهة الإدارة المحمية (Admin View)
+  // 1. واجهة الإدارة المحمية 
   // =========================================================================
   if (isAdmin) {
-    // شاشة القفل الملكية
     if (!isAuthenticated) {
       return (
         <div className="login-screen">
@@ -121,7 +131,6 @@ function App() {
       );
     }
 
-    // لوحة التحكم الأساسية 30/70
     const filteredAdmin = products.filter(p => p.name.includes(adminSearch) && (adminCat === 'الكل' || p.category === adminCat));
     return (
       <div className="admin-root">
@@ -174,7 +183,7 @@ function App() {
             <div className="card-ui">
               <h2 className="gold-text">🛠️ إعدادات النظام وتغيير الرمز</h2>
               <div className="form-group"><label>اسم المتجر</label><input value={settings.shop_name} onChange={e=>setSettings({...settings, shop_name:e.target.value})} /></div>
-              <div className="form-group"><label>رقم الواتساب للطلبات</label><input value={settings.phone} onChange={e=>setSettings({...settings, phone:e.target.value})} placeholder="9665xxxxxxxx" /></div>
+              <div className="form-group"><label>رقم الواتساب للطلبات</label><input value={settings.phone} onChange={e=>setSettings({...settings, phone:e.target.value})} /></div>
               <div className="form-group"><label>الرقم السري للدخول (PIN)</label><input type="text" value={settings.admin_pin} onChange={e=>setSettings({...settings, admin_pin:e.target.value})} /></div>
               <button className="gold-btn-action" onClick={async () => {
                 await fetch(`${API_URL}/settings`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(settings)});
@@ -184,6 +193,16 @@ function App() {
           ) : (
             <div className="card-ui">
               <h2 className="gold-text">{editingItem ? '✏️ تعديل صنف مختار' : '➕ إضافة صنف جديد'}</h2>
+              
+              {/* 🛠️ قسم رفع الصورة الذي أعدناه لك */}
+              <div className="image-upload-section">
+                {formData.image && <img src={formData.image} alt="Product Preview" className="preview-img" />}
+                <label className="custom-file-upload">
+                  📤 {formData.image ? "تغيير الصورة" : "رفع صورة المنتج"}
+                  <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
+                </label>
+              </div>
+
               <div className="form-grid-3">
                  <input placeholder="الاسم" value={formData.name} onChange={e=>setFormData({...formData, name:e.target.value})}/>
                  <input placeholder="السعر" type="number" value={formData.price} onChange={e=>setFormData({...formData, price:e.target.value})}/>
@@ -219,14 +238,12 @@ function App() {
          <button className={`open-cart-large desktop-only ${bumpCart ? 'bump' : ''}`} onClick={() => setShowCart(true)}>🛒 السلة <span>{cart.length}</span></button>
       </header>
 
-      {/* شريط الأقسام */}
       <div className="client-category-bar">
         <button className={clientCat==='الكل'?'active':''} onClick={()=>setClientCat('الكل')}>🌐 الكل</button>
         <button className={clientCat==='كهرباء ⚡'?'active':''} onClick={()=>setClientCat('كهرباء ⚡')}>⚡ كهرباء</button>
         <button className={clientCat==='سباكة 💧'?'active':''} onClick={()=>setClientCat('سباكة 💧')}>💧 سباكة</button>
       </div>
 
-      {/* معرض المنتجات */}
       <div className="gallery-container">
         <div className="p-grid-royal">
           {filteredClient.map(p => (
@@ -260,12 +277,10 @@ function App() {
         </div>
       </div>
 
-      {/* زر السلة العائم للموبايل */}
       <button className={`floating-cart-btn mobile-only ${bumpCart ? 'bump' : ''}`} onClick={() => setShowCart(true)}>
         🛒 <span className="float-badge">{cart.length}</span>
       </button>
 
-      {/* السلة الذكية "ثابتة الأطراف" للموبايل والديسكتوب */}
       <div className={`cart-overlay ${showCart ? 'open' : ''}`}>
          <div className="cart-inner-container">
             <div className="cart-header-fixed">
