@@ -1,20 +1,20 @@
-.App { font-family: 'Tajawal', sans-serif; direction: rtl; background: #f4f7f6; min-height: 100vh; }
-.main-header { background: #1a2a3a; color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-.nav-btns button { background: #34495e; color: white; border: none; padding: 8px 15px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
-.admin-panel { background: white; max-width: 500px; margin: 20px auto; padding: 20px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
-.admin-panel input, .admin-panel select { width: 90%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 5px; }
-.add-btn { background: #27ae60; width: 100%; color: white; font-weight: bold; margin-top: 10px; }
-.search-bar { margin: 20px; }
-.search-bar input { width: 60%; padding: 12px; border-radius: 25px; border: 1px solid #ddd; outline: none; }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; padding: 20px; }
-.card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 3px 10px rgba(0,0,0,0.05); transition: 0.3s; }
-.card:hover { transform: translateY(-5px); }
-.card img { width: 100%; height: 180px; object-fit: cover; }
-.card-info { padding: 15px; }
-.price { color: #e67e22; font-weight: bold; font-size: 1.2rem; }
-.cat-tag { background: #eee; padding: 3px 8px; border-radius: 15px; font-size: 0.8rem; }
-.del-btn { background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 5px; margin-top: 10px; cursor: pointer; width: 100%; }
-.stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; padding: 20px; }
-.stat-card { background: white; padding: 30px; border-radius: 15px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-.stat-card h3 { color: #7f8c8d; }
-.stat-card p { font-size: 2rem; color: #2c3e50; font-weight: bold; }
+:root { --main: #0a192f; --gold: #ffd700; --accent: #27ae60; --bg: #f8f9fa; }
+body { background: var(--bg); font-family: 'Tajawal', sans-serif; direction: rtl; margin: 0; }
+.navbar { background: var(--main); padding: 1rem 5%; display: flex; justify-content: space-between; align-items: center; color: white; position: sticky; top: 0; z-index: 1000; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+.logo { font-size: 1.5rem; font-weight: bold; color: var(--gold); }
+.nav-links button { background: none; border: 1px solid var(--gold); color: var(--gold); padding: 5px 15px; margin-left: 10px; border-radius: 20px; cursor: pointer; transition: 0.3s; }
+.nav-links button:hover { background: var(--gold); color: var(--main); }
+.admin-section { background: white; max-width: 600px; margin: 2rem auto; padding: 2rem; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+.form input, .form select { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; }
+.camera-label { display: block; background: #eee; padding: 20px; text-align: center; border: 2px dashed #ccc; border-radius: 8px; cursor: pointer; margin: 10px 0; }
+.camera-label input { display: none; }
+.form button { width: 100%; background: var(--accent); color: white; padding: 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+.product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 2rem; padding: 2rem 5%; }
+.product-card { background: white; border-radius: 15px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.05); transition: 0.3s; text-align: center; }
+.product-card:hover { transform: translateY(-10px); }
+.img-container { width: 100%; height: 200px; background: #eee; }
+.img-container img { width: 100%; height: 100%; object-fit: cover; }
+.price { color: var(--accent); font-size: 1.4rem; font-weight: bold; }
+.del-btn { background: #ff4757; color: white; border: none; padding: 5px 20px; border-radius: 5px; cursor: pointer; margin-bottom: 15px; }
+.stats-grid { display: flex; gap: 2rem; justify-content: center; padding: 2rem; }
+.stat { background: white; padding: 2rem; border-radius: 15px; width: 200px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.1); border-top: 5px solid var(--gold); }
