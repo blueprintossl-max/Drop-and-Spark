@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import './App.css';
+import './App.css'; // ⚠️ هذا السطر هو شريان الحياة للتصميم! تأكد من وجوده
 
 const API_URL = 'https://drop-and-spark-1.onrender.com/api';
 
 function App() {
   const [products, setProducts] = useState([]);
-  const [settings, setSettings] = useState({ phone: '', email: '', shop_name: '' });
+  const [settings, setSettings] = useState({ phone: '', email: '', shop_name: 'قطرة وشرارة' });
   const [cart, setCart] = useState([]);
   const [alert, setAlert] = useState(null);
-  const [adminView, setAdminView] = useState('inventory'); // inventory, reports, settings
+  const [adminView, setAdminView] = useState('inventory');
   const [adminSearch, setAdminSearch] = useState('');
   const [editingItem, setEditingItem] = useState(null);
   const [showCart, setShowCart] = useState(false);
@@ -29,8 +29,9 @@ function App() {
     const url = editingItem ? `${API_URL}/products/${editingItem.id}` : `${API_URL}/products`;
     const res = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(formData) });
     if (res.ok) { 
-      setAlert("✅ تم حفظ التعديلات في النظام");
-      setEditingItem(null); setFormData({ name: '', price: '', old_price: '', stock: 0, category: 'كهرباء ⚡', image: '', is_sale: false, out_of_stock: false });
+      setAlert("✅ تم حفظ التعديلات");
+      setEditingItem(null); 
+      setFormData({ name: '', price: '', old_price: '', stock: 0, category: 'كهرباء ⚡', image: '', is_sale: false, out_of_stock: false });
       fetchProducts();
     }
   };
@@ -43,13 +44,13 @@ function App() {
         <aside className="sidebar-30">
           <div className="side-logo">⚙️ إدارة {settings.shop_name}</div>
           <div className="side-search-box">
-             <input placeholder="🔍 ابحث عن صنف للتعديل..." onChange={e => setAdminSearch(e.target.value)} />
+             <input placeholder="🔍 ابحث عن صنف لتعديله..." onChange={e => setAdminSearch(e.target.value)} />
           </div>
           <nav className="side-nav">
             <button onClick={() => setAdminView('inventory')} className={adminView==='inventory'?'active':''}>📦 المستودع</button>
             <button onClick={() => setAdminView('reports')} className={adminView==='reports'?'active':''}>📊 التقارير</button>
             <button onClick={() => setAdminView('settings')} className={adminView==='settings'?'active':''}>🛠️ الإعدادات</button>
-            <a href="/" className="exit-btn">🏠 المتجر</a>
+            <a href="/" className="exit-btn">🏠 عرض المتجر</a>
           </nav>
           <div className="side-inventory-list">
              {filtered.map(p => (
@@ -67,7 +68,7 @@ function App() {
                <h2 className="gold-text">📊 التقرير المالي والجرد</h2>
                <div className="stats-grid">
                   <div className="stat-card"><h3>قيمة البضاعة</h3><p>{products.reduce((a,b)=>a+(Number(b.price)*Number(b.stock)),0)} ريال</p></div>
-                  <div className="stat-box-total"><h3>إجمالي القطع</h3><p>{products.reduce((a,b)=>a+Number(b.stock),0)}</p></div>
+                  <div className="stat-card"><h3>إجمالي القطع</h3><p>{products.reduce((a,b)=>a+Number(b.stock),0)}</p></div>
                </div>
             </div>
           ) : adminView === 'settings' ? (
@@ -76,7 +77,7 @@ function App() {
               <div className="form-group"><label>رقم الواتساب</label><input value={settings.phone} onChange={e=>setSettings({...settings, phone:e.target.value})} /></div>
               <div className="form-group"><label>اسم المتجر</label><input value={settings.shop_name} onChange={e=>setSettings({...settings, shop_name:e.target.value})} /></div>
               <button className="gold-btn-action" onClick={async () => {
-                await fetch(`${API_URL}/settings`, {method:'PUT', headers:{{'Content-Type':'application/json'}}, body:JSON.stringify(settings)});
+                await fetch(`${API_URL}/settings`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(settings)});
                 setAlert("✅ تم تحديث بيانات الإدارة");
               }}>حفظ الإعدادات 💾</button>
             </div>
@@ -92,9 +93,8 @@ function App() {
                  </select>
               </div>
               <div className="btn-toggle-row">
-                 {/* تغير الألوان فوراً عند الضغط */}
-                 <button className={`t-btn ${formData.is_sale?'on':''}`} onClick={()=>{setFormData({...formData, is_sale:!formData.is_sale}); setAlert("🔥 تم تفعيل العرض");}}>🔥 عرض ناري</button>
-                 <button className={`t-btn ${formData.out_of_stock?'on':''}`} onClick={()=>{setFormData({...formData, out_of_stock:!formData.out_of_stock}); setAlert("🚫 تم تغيير التوفر");}}>🚫 نفد</button>
+                 <button className={`t-btn ${formData.is_sale?'on':''}`} onClick={()=>{setFormData({...formData, is_sale:!formData.is_sale}); setAlert("🔥 تم تعديل حالة العرض");}}>🔥 عرض ناري</button>
+                 <button className={`t-btn ${formData.out_of_stock?'on':''}`} onClick={()=>{setFormData({...formData, out_of_stock:!formData.out_of_stock}); setAlert("🚫 تم تعديل حالة التوفر");}}>🚫 نفد</button>
               </div>
               <button className="btn-save-final" onClick={handleSave}>حفظ في المستودع الملكي 📦</button>
             </div>

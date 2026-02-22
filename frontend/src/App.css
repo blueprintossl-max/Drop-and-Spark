@@ -1,27 +1,75 @@
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&family=Amiri:wght@700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
 :root { --navy: #0a192f; --gold: #D4AF37; --white: #fff; }
 body { margin: 0; font-family: 'Tajawal', sans-serif; direction: rtl; background: #fdfdfd; }
 
-/* حل تباعد المعرض */
-.gallery-container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-.p-grid-royal { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
-.royal-p-card { background: white; border-radius: 15px; border: 1px solid #eee; overflow: hidden; height: 390px; text-align: center; display: flex; flex-direction: column; transition: 0.3s; position: relative; }
-.p-img-box { height: 210px; background: #f9f9f9; }
-.p-img-box img { width: 100%; height: 100%; object-fit: contain; } /* يمنع تضخم الصورة */
+/* ---------------- واجهة العميل (إصلاح مشكلة التباعد) ---------------- */
+.royal-header { background: var(--navy); padding: 20px 5%; display: flex; justify-content: space-between; align-items: center; border-bottom: 4px solid var(--gold); position: sticky; top: 0; z-index: 1000; }
+.logo-box { color: var(--gold); font-size: 1.8rem; font-weight: 900; }
+.logo-box span { color: white; font-weight: normal; font-size: 1.2rem; }
+.open-cart-large { background: none; border: 2px solid var(--gold); color: var(--gold); padding: 10px 20px; border-radius: 30px; font-weight: bold; cursor: pointer; }
 
-/* الإدارة 30/70 إجباري ثابت */
+.gallery-container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
+.p-grid-royal { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 30px; }
+.royal-p-card { background: white; border-radius: 20px; border: 1px solid #eee; overflow: hidden; height: 420px; text-align: center; display: flex; flex-direction: column; transition: 0.3s; position: relative; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
+.royal-p-card:hover { transform: translateY(-10px); box-shadow: 0 15px 30px rgba(0,0,0,0.1); }
+.p-img-box { height: 230px; background: #fff; padding: 10px; border-bottom: 1px solid #eee; }
+.p-img-box img { width: 100%; height: 100%; object-fit: contain; }
+.p-info-box { padding: 15px; flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+.p-info-box h4 { margin: 0; font-size: 1.2rem; color: var(--navy); }
+.p-price-tag { font-size: 1.5rem; font-weight: bold; color: #27ae60; }
+.p-price-tag del { color: #999; font-size: 1rem; margin-right: 10px; }
+.add-btn-p { background: var(--navy); color: var(--gold); padding: 12px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+.add-btn-p:hover { background: var(--gold); color: var(--navy); }
+
+/* العلامات (Tags) */
+.fire-tag { position: absolute; top: 15px; right: 15px; background: #ff4757; color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; z-index: 10; }
+.sold-tag { position: absolute; top: 15px; left: 15px; background: #555; color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; z-index: 10; }
+
+/* السلة اليسرى العملاقة */
+.cart-left-panel { position: fixed; left: -450px; top: 0; width: 420px; height: 100vh; background: var(--navy); color: white; transition: 0.5s ease-in-out; z-index: 3000; border-right: 6px solid var(--gold); box-shadow: 15px 0 60px rgba(0,0,0,0.6); }
+.cart-left-panel.open { left: 0; }
+.cart-inner { padding: 40px; height: 100%; display: flex; flex-direction: column; }
+.close-btn-x { background: #ff4757; color: white; border: none; padding: 10px; border-radius: 10px; cursor: pointer; margin-bottom: 20px; }
+.cart-list-scroll { flex: 1; overflow-y: auto; }
+.cart-row { display: flex; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.total-gold-box { font-size: 2rem; font-weight: 900; color: var(--gold); border-top: 2px solid #ffffff33; margin-top: 20px; padding-top: 20px; }
+.btn-wa-confirm { background: #25d366; color: white; padding: 20px; border: none; border-radius: 15px; font-size: 1.2rem; font-weight: bold; cursor: pointer; margin-top: 20px; }
+
+/* ---------------- الإدارة 30/70 إجباري ---------------- */
 .admin-root { display: flex; height: 100vh; overflow: hidden; }
 .sidebar-30 { flex: 0 0 30%; background: var(--navy); border-left: 4px solid var(--gold); display: flex; flex-direction: column; color: white; }
 .content-70 { flex: 0 0 70%; background: #f4f7f6; padding: 40px; overflow-y: auto; }
 
-/* تغير ألوان الأزرار التفاعلية فوراً */
-.t-btn { flex: 1; padding: 15px; border-radius: 10px; border: 2px solid #ddd; background: white; cursor: pointer; font-weight: bold; transition: 0.3s; }
+.side-logo { padding: 30px; font-size: 1.5rem; font-weight: 900; color: var(--gold); text-align: center; border-bottom: 1px solid #ffffff22; }
+.side-nav { padding: 20px; }
+.side-nav button, .exit-btn { display: block; width: 100%; padding: 15px; margin-bottom: 10px; background: none; border: none; color: white; text-align: right; font-weight: bold; cursor: pointer; border-radius: 10px; text-decoration: none; }
+.side-nav button.active { background: var(--gold); color: var(--navy); }
+.side-search-box { padding: 15px; }
+.side-search-box input { width: 90%; padding: 12px; border-radius: 10px; border: none; }
+.side-inventory-list { flex: 1; overflow-y: auto; padding: 10px; }
+.p-row-item { display: flex; align-items: center; padding: 10px; border-radius: 10px; margin-bottom: 10px; cursor: pointer; background: rgba(255,255,255,0.1); }
+.p-row-item:hover { background: var(--gold); color: var(--navy); }
+.mini-thumb { width: 50px; height: 50px; border-radius: 8px; object-fit: cover; margin-left: 15px; background: white; }
+
+/* كروت الإدارة */
+.card-ui, .reports-view { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.05); max-width: 800px; margin: 0 auto; }
+.form-grid-3 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+.form-grid-3 input, .form-grid-3 select, .form-group input { width: 100%; padding: 15px; border: 2px solid #eee; border-radius: 12px; font-size: 1rem; box-sizing: border-box; }
+.form-group { margin-bottom: 20px; }
+.form-group label { display: block; font-weight: bold; margin-bottom: 10px; }
+
+/* أزرار الحالة التفاعلية */
+.btn-toggle-row { display: flex; gap: 15px; margin-bottom: 25px; }
+.t-btn { flex: 1; padding: 15px; border-radius: 12px; border: 2px solid #ddd; background: white; cursor: pointer; font-weight: bold; transition: 0.3s; }
 .t-btn.on { background: var(--gold); color: var(--navy); border-color: var(--gold); box-shadow: 0 5px 15px rgba(212, 175, 55, 0.4); }
 
-/* السلة اليسرى العملاقة (420px) */
-.cart-left-panel { position: fixed; left: -450px; top: 0; width: 420px; height: 100vh; background: var(--navy); color: white; transition: 0.5s ease-in-out; z-index: 3000; border-right: 6px solid var(--gold); box-shadow: 15px 0 60px rgba(0,0,0,0.6); }
-.cart-left-panel.open { left: 0; }
-.total-gold-box { font-size: 2rem; font-weight: 900; color: var(--gold); border-top: 2px solid #ffffff33; margin-top: 30px; padding-top: 20px; }
+.btn-save-final, .gold-btn-action { width: 100%; background: var(--navy); color: var(--gold); padding: 20px; border: none; border-radius: 12px; font-size: 1.2rem; font-weight: 900; cursor: pointer; }
 
 /* الإشعارات */
-.toast-notification { position: fixed; top: 30px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--navy); padding: 15px 45px; border-radius: 50px; font-weight: 900; z-index: 5000; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+.toast-notification { position: fixed; top: 30px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--navy); padding: 15px 45px; border-radius: 50px; font-weight: 900; z-index: 5000; box-shadow: 0 10px 40px rgba(0,0,0,0.2); animation: fadeInOut 3s forwards; }
+@keyframes fadeInOut { 0% { opacity: 0; top: 0; } 10% { opacity: 1; top: 30px; } 90% { opacity: 1; top: 30px; } 100% { opacity: 0; top: 0; } }
+
+/* التقارير */
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.stat-card { background: #f9f9f9; padding: 30px; border-radius: 15px; text-align: center; border-bottom: 5px solid var(--gold); }
+.stat-card p { font-size: 2.5rem; font-weight: 900; color: var(--navy); margin: 0; }
