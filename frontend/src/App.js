@@ -5,11 +5,16 @@ const API_URL = 'https://drop-and-spark-1.onrender.com/api';
 
 function App() {
   const [products, setProducts] = useState([]);
-  const [settings, setSettings] = useState({ phone: '', email: '', shop_name: 'قطرة وشرارة' });
+  const [settings, setSettings] = useState({ phone: '', email: '', shop_name: 'قطرة وشرارة', admin_pin: '123456' });
   const [cart, setCart] = useState([]);
   const [alert, setAlert] = useState(null);
   
+  // تأثير نبض السلة
+  const [bumpCart, setBumpCart] = useState(false);
+  
   // حالات الإدارة
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [pinInput, setPinInput] = useState('');
   const [adminView, setAdminView] = useState('inventory');
   const [adminSearch, setAdminSearch] = useState('');
   const [adminCat, setAdminCat] = useState('الكل');
@@ -18,8 +23,8 @@ function App() {
   
   // حالات العميل
   const [showCart, setShowCart] = useState(false);
-  const [clientCat, setClientCat] = useState('الكل'); // فلتر العميل الجديد
-  const [itemQtys, setItemQtys] = useState({}); // للتحكم بكمية كل منتج قبل إضافته للسلة
+  const [clientCat, setClientCat] = useState('الكل');
+  const [itemQtys, setItemQtys] = useState({});
 
   const isAdmin = window.location.pathname.includes('/admin');
 
@@ -31,20 +36,17 @@ function App() {
   const fetchProducts = () => fetch(`${API_URL}/products`).then(r => r.json()).then(setProducts);
   const fetchSettings = () => fetch(`${API_URL}/settings`).then(r => r.json()).then(setSettings);
 
-  // حفظ التعديلات الشاملة للمنتج
   const handleSave = async () => {
     const method = editingItem ? 'PUT' : 'POST';
     const url = editingItem ? `${API_URL}/products/${editingItem.id}` : `${API_URL}/products`;
     const res = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(formData) });
     if (res.ok) { 
-      setAlert("✅ تم حفظ التعديلات");
-      setEditingItem(null); 
+      setAlert("✅ تم حفظ التعديلات"); setEditingItem(null); 
       setFormData({ name: '', price: '', old_price: '', stock: 0, category: 'كهرباء ⚡', image: '', is_sale: false, out_of_stock: false });
       fetchProducts();
     }
   };
 
-  // الجرد السريع (زيادة وإنقاص المخزون مباشرة من القائمة الجانبية)
   const quickStockUpdate = async (product, change) => {
     const newStock = Math.max(0, Number(product.stock) + change);
     const updatedProduct = { ...product, stock: newStock };
@@ -52,7 +54,6 @@ function App() {
     fetchProducts();
   };
 
-  // وظائف العميل (التحكم بالكميات)
   const handleQtyChange = (id, change) => {
     setItemQtys(prev => ({ ...prev, [id]: Math.max(1, (prev[id] || 1) + change) }));
   };
@@ -65,11 +66,14 @@ function App() {
       const newCart = [...cart];
       newCart[existingItemIndex].qty += qtyToAdd;
       setCart(newCart);
-    } else {
-      setCart([...cart, { ...product, qty: qtyToAdd }]);
-    }
+    } else { setCart([...cart, { ...product, qty: qtyToAdd }]); }
+    
     setAlert(`✅ تم إضافة ${qtyToAdd} قطعة للسلة`);
-    setItemQtys(prev => ({ ...prev, [product.id]: 1 })); // إعادة تصفير العداد
+    setItemQtys(prev => ({ ...prev, [product.id]: 1 }));
+    
+    // تفعيل النبض
+    setBumpCart(true);
+    setTimeout(() => setBumpCart(false), 300);
   };
 
   const updateCartItemQty = (index, change) => {
@@ -81,6 +85,24 @@ function App() {
 
   // ------------------------- واجهة الإدارة -------------------------
   if (isAdmin) {
+    if (!isAuthenticated) {
+      return (
+        <div className="login-screen">
+          {alert && <div className="toast-notification">{alert}</div>}
+          <div className="login-box">
+            <h2>🔒 الإدارة الملكية</h2>
+            <p>يُرجى إدخال الرقم السري للوصول للمستودع</p>
+            <input type="password" placeholder="أدخل الرقم السري..." value={pinInput} onChange={e => setPinInput(e.target.value)} />
+            <button onClick={() => {
+              if (pinInput === settings.admin_pin) { setIsAuthenticated(true); setAlert("✅ تم تسجيل الدخول بنجاح"); } 
+              else { setAlert("❌ الرقم السري غير صحيح!"); }
+            }}>فتح القفل 🗝️</button>
+            <a href="/">العودة للمتجر 🏠</a>
+          </div>
+        </div>
+      );
+    }
+
     const filteredAdmin = products.filter(p => p.name.includes(adminSearch) && (adminCat === 'الكل' || p.category === adminCat));
     return (
       <div className="admin-root">
@@ -89,9 +111,9 @@ function App() {
           <div className="side-logo">⚙️ إدارة {settings.shop_name}</div>
           <div className="side-tools">
              <div className="cat-pills-admin">
-               <button onClick={() => setAdminCat('كهرباء ⚡')} className={adminCat==='كهرباء ⚡'?'active':''}>⚡ كهرباء</button>
-               <button onClick={() => setAdminCat('سباكة 💧')} className={adminCat==='سباكة 💧'?'active':''}>💧 سباكة</button>
-               <button onClick={() => setAdminCat('الكل')} className={adminCat==='الكل'?'active':''}>🌐 الكل</button>
+               <button onClick={() => setAdminCat('كهرباء ⚡')} className={adminCat==='كهرباء ⚡'?'active':''}>⚡</button>
+               <button onClick={() => setAdminCat('سباكة 💧')} className={adminCat==='سباكة 💧'?'active':''}>💧</button>
+               <button onClick={() => setAdminCat('الكل')} className={adminCat==='الكل'?'active':''}>🌐</button>
              </div>
              <input className="side-search" placeholder="🔍 ابحث عن صنف..." onChange={e => setAdminSearch(e.target.value)} />
           </div>
@@ -111,7 +133,6 @@ function App() {
                       <small className={p.stock <= 3 ? 'danger-text' : ''}>مخزون: {p.stock}</small>
                     </div>
                   </div>
-                  {/* أزرار الجرد السريع الإبداعية */}
                   <div className="quick-stock-btns">
                     <button onClick={() => quickStockUpdate(p, 1)} className="q-plus">+</button>
                     <button onClick={() => quickStockUpdate(p, -1)} className="q-minus">-</button>
@@ -132,12 +153,13 @@ function App() {
             </div>
           ) : adminView === 'settings' ? (
             <div className="card-ui">
-              <h2 className="gold-text">🛠️ إعدادات النظام الإداري</h2>
-              <div className="form-group"><label>رقم الواتساب</label><input value={settings.phone} onChange={e=>setSettings({...settings, phone:e.target.value})} placeholder="9665xxxxxxxx" /></div>
+              <h2 className="gold-text">🛠️ إعدادات النظام وتغيير الرمز</h2>
               <div className="form-group"><label>اسم المتجر</label><input value={settings.shop_name} onChange={e=>setSettings({...settings, shop_name:e.target.value})} /></div>
+              <div className="form-group"><label>رقم الواتساب للطلبات</label><input value={settings.phone} onChange={e=>setSettings({...settings, phone:e.target.value})} /></div>
+              <div className="form-group"><label>الرقم السري للدخول (PIN)</label><input type="password" value={settings.admin_pin} onChange={e=>setSettings({...settings, admin_pin:e.target.value})} /></div>
               <button className="gold-btn-action" onClick={async () => {
                 await fetch(`${API_URL}/settings`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(settings)});
-                setAlert("✅ تم تحديث بيانات الإدارة");
+                setAlert("✅ تم حفظ الإعدادات بنجاح");
               }}>حفظ الإعدادات 💾</button>
             </div>
           ) : (
@@ -168,19 +190,18 @@ function App() {
   const filteredClient = products.filter(p => clientCat === 'الكل' || p.category === clientCat);
 
   return (
-    <div className="App client-theme">
+    <div className={`App client-theme ${showCart ? 'no-scroll' : ''}`}>
       {alert && <div className="toast-notification">{alert}</div>}
       
       <header className="royal-header">
          <div className="logo-box">💧 <span>مَتجر</span> {settings.shop_name} ⚡</div>
-         <button className="open-cart-large desktop-only" onClick={() => setShowCart(true)}>🛒 السلة <span>{cart.length}</span></button>
+         <button className={`open-cart-large desktop-only ${bumpCart ? 'bump' : ''}`} onClick={() => setShowCart(true)}>🛒 السلة <span>{cart.length}</span></button>
       </header>
 
-      {/* شريط الأقسام الإبداعي للعميل */}
       <div className="client-category-bar">
-        <button className={clientCat==='الكل'?'active':''} onClick={()=>setClientCat('الكل')}>🌐 عرض الكل</button>
-        <button className={clientCat==='كهرباء ⚡'?'active':''} onClick={()=>setClientCat('كهرباء ⚡')}>⚡ قسم الكهرباء</button>
-        <button className={clientCat==='سباكة 💧'?'active':''} onClick={()=>setClientCat('سباكة 💧')}>💧 قسم السباكة</button>
+        <button className={clientCat==='الكل'?'active':''} onClick={()=>setClientCat('الكل')}>🌐 الكل</button>
+        <button className={clientCat==='كهرباء ⚡'?'active':''} onClick={()=>setClientCat('كهرباء ⚡')}>⚡ كهرباء</button>
+        <button className={clientCat==='سباكة 💧'?'active':''} onClick={()=>setClientCat('سباكة 💧')}>💧 سباكة</button>
       </div>
 
       <div className="gallery-container">
@@ -200,7 +221,6 @@ function App() {
 
                 {!p.out_of_stock ? (
                   <div className="action-area">
-                    {/* أزرار الكمية التفاعلية */}
                     <div className="qty-controls">
                       <button onClick={() => handleQtyChange(p.id, 1)} className="qty-btn">+</button>
                       <span className="qty-display">{itemQtys[p.id] || 1}</span>
@@ -209,7 +229,7 @@ function App() {
                     <button className="add-btn-p" onClick={() => addToCart(p)}>إضافة للسلة 🛒</button>
                   </div>
                 ) : (
-                  <div className="action-area"><button className="add-btn-p disabled" disabled>غير متوفر حالياً</button></div>
+                  <div className="action-area"><button className="add-btn-p disabled" disabled>غير متوفر</button></div>
                 )}
               </div>
             </div>
@@ -217,55 +237,53 @@ function App() {
         </div>
       </div>
 
-      {/* زر السلة العائم للموبايل */}
-      <button className="floating-cart-btn mobile-only" onClick={() => setShowCart(true)}>
+      {/* زر السلة العائم للموبايل مع النبض */}
+      <button className={`floating-cart-btn mobile-only ${bumpCart ? 'bump' : ''}`} onClick={() => setShowCart(true)}>
         🛒 <span className="float-badge">{cart.length}</span>
       </button>
 
-      {/* السلة الذكية "ثابتة الأطراف" */}
-      <div className={`cart-left-panel ${showCart?'open':''}`}>
-         <div className="cart-inner">
+      {/* السلة الذكية والواضحة */}
+      <div className={`cart-overlay ${showCart ? 'open' : ''}`}>
+         <div className="cart-inner-container">
             <div className="cart-header-fixed">
               <h2>🛍️ سلة المشتريات</h2>
               <button className="close-btn-x" onClick={() => setShowCart(false)}>❌</button>
             </div>
             
-            <div className="cart-list-scroll">
+            <div className="cart-products-scroll">
                {cart.length === 0 ? (
-                 <div className="empty-cart-msg">
-                   <div className="empty-icon">🛒</div>
-                   <p>سلتك متعطشة لمنتجاتنا الرائعة!</p>
-                 </div>
+                 <div className="empty-cart-msg"><div className="empty-icon">🛒</div><p>سلتك فارغة بانتظار منتجاتنا الرائعة!</p></div>
                ) : (
                  cart.map((item, i) => (
-                   <div key={i} className="cart-row">
-                     <div className="cart-item-name">{item.name}</div>
-                     <div className="cart-item-actions">
+                   <div key={i} className="cart-product-row">
+                     <img src={item.image} alt="" className="cart-p-img" />
+                     <div className="cart-p-details">
+                       <div className="cart-item-name">{item.name}</div>
+                       <span className="cart-item-price">{item.price} ريال للقطعة</span>
                        <div className="mini-qty-controls">
                          <button onClick={() => updateCartItemQty(i, 1)}>+</button>
                          <span>{item.qty}</span>
                          <button onClick={() => updateCartItemQty(i, -1)}>-</button>
                        </div>
-                       <span className="cart-item-price">{item.price * item.qty} ريال</span>
                      </div>
+                     <div className="cart-item-total">{item.price * item.qty} ريال</div>
                    </div>
                  ))
                )}
             </div>
 
-            <div className="cart-footer-fixed">
-              <div className="total-gold-box">الإجمالي: {cart.reduce((a,b)=>a+(Number(b.price)*b.qty),0)} ريال</div>
-              <button 
-                className="btn-wa-confirm" 
-                disabled={cart.length === 0}
-                onClick={() => {
-                  let msg = `*طلب جديد - ${settings.shop_name}* 💧⚡\n\n`;
-                  cart.forEach(i => msg += `- ${i.name} [الكمية: ${i.qty}] | ${i.price * i.qty} ريال\n`);
-                  msg += `\n*الإجمالي: ${cart.reduce((a,b)=>a+(Number(b.price)*b.qty),0)} ريال*`;
-                  window.open(`https://wa.me/${settings.phone}?text=${encodeURIComponent(msg)}`);
-                }}>
-                تأكيد الطلب واتساب ✅
-              </button>
+            {/* منطقة الدفع الثابتة والمشعة بالأزرار الكبيرة */}
+            <div className="cart-action-fixed">
+              <div className="total-gold-box">الإجمالي: <span>{cart.reduce((a,b)=>a+(Number(b.price)*b.qty),0)}</span> ريال</div>
+              <div className="cart-buttons-row">
+                <button className="btn-continue-shopping" onClick={() => setShowCart(false)}>🛍️ إكمال التسوق</button>
+                <button className="btn-wa-confirm" disabled={cart.length === 0} onClick={() => {
+                    let msg = `*طلب جديد - ${settings.shop_name}* 💧⚡\n\n`;
+                    cart.forEach(i => msg += `- ${i.name} [الكمية: ${i.qty}] | ${i.price * i.qty} ريال\n`);
+                    msg += `\n*الإجمالي: ${cart.reduce((a,b)=>a+(Number(b.price)*b.qty),0)} ريال*`;
+                    window.open(`https://wa.me/${settings.phone}?text=${encodeURIComponent(msg)}`);
+                  }}>تأكيد الطلب ✅</button>
+              </div>
             </div>
          </div>
       </div>
