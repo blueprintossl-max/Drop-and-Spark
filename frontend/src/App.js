@@ -88,7 +88,6 @@ function App() {
     if (res.ok) { 
       setAlert("✅ تم حفظ الصنف في القسم بنجاح"); 
       setEditingItem(null); 
-      // 🛠️ إعادة تصفير النموذج مع الحفاظ على القسم الحالي المختار لتسريع الإدخال المستمر
       const currentActiveCategory = adminCat !== 'الكل' ? adminCat : (categories.length > 0 ? categories[0].name : '');
       setFormData({ name: '', price: '', old_price: '', stock: 0, category: currentActiveCategory, image: '', is_sale: false, out_of_stock: false });
       fetchProducts();
@@ -154,7 +153,6 @@ function App() {
           <div className="side-logo">⚙️ مستودع الأقسام</div>
           <div className="side-tools">
              <div className="cat-pills-admin">
-               {/* 🛠️ أزرار الأقسام الذكية: عند الضغط عليها يتغير مسار الإدخال تلقائياً */}
                <button onClick={() => {
                  setAdminCat('الكل');
                  if(categories.length > 0) setFormData(prev => ({ ...prev, category: categories[0].name }));
@@ -164,7 +162,7 @@ function App() {
                {categories.map(c => (
                  <button key={c.id} onClick={() => {
                    setAdminCat(c.name);
-                   setFormData(prev => ({ ...prev, category: c.name })); // التحديد التلقائي للقسم
+                   setFormData(prev => ({ ...prev, category: c.name }));
                    setEditingItem(null); setAdminView('inventory');
                  }} className={adminCat===c.name?'active':''}>{c.name}</button>
                ))}
@@ -233,7 +231,6 @@ function App() {
             </div>
           ) : (
             <div className="card-ui">
-              {/* 🛠️ العنوان يتغير ديناميكياً ليخبرك في أي قسم أنت الآن */}
               <h2 className="gold-text">
                 {editingItem ? '✏️ تعديل صنف مختار' : `➕ إضافة منتج جديد ${adminCat !== 'الكل' ? `في قسم (${adminCat})` : ''}`}
               </h2>
@@ -269,7 +266,7 @@ function App() {
   }
 
   // =========================================================================
-  // 2. واجهة العميل (شاشات عرض مستقلة لكل قسم)
+  // 2. واجهة العميل (شاشات عرض مستقلة لكل قسم + أزرار عائمة)
   // =========================================================================
   const filteredClient = products.filter(p => clientCat === 'الكل' || p.category === clientCat);
 
@@ -330,8 +327,18 @@ function App() {
         )}
       </div>
 
-      <button className={`floating-cart-btn mobile-only ${bumpCart ? 'bump' : ''}`} onClick={() => setShowCart(true)}>
+      {/* 🛠️ زر السلة العائم */}
+      <button className={`floating-cart-btn ${bumpCart ? 'bump' : ''}`} onClick={() => setShowCart(true)}>
         🛒 <span className="float-badge">{cart.length}</span>
+      </button>
+
+      {/* 🛠️ زر الواتساب العائم الجديد (متحرك وثابت في الشاشة) */}
+      <button 
+        className="floating-wa-btn" 
+        onClick={() => window.open(`https://wa.me/${settings.phone}?text=${encodeURIComponent('مرحباً، لدي استفسار بخصوص المتجر...')}`)}
+        title="تواصل معنا عبر واتساب"
+      >
+        💬
       </button>
 
       {/* السلة الذكية */}
