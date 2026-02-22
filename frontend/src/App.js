@@ -4,6 +4,7 @@ import './App.css';
 const API_URL = 'https://drop-and-spark-1.onrender.com/api';
 
 function App() {
+  // --- الحالات العامة ---
   const [products, setProducts] = useState([]);
   const [settings, setSettings] = useState({ phone: '', email: '', shop_name: 'قطرة وشرارة', admin_pin: '123456' });
   const [cart, setCart] = useState([]);
@@ -12,7 +13,7 @@ function App() {
   // تأثير نبض السلة
   const [bumpCart, setBumpCart] = useState(false);
   
-  // حالات الإدارة
+  // --- حالات الإدارة ---
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pinInput, setPinInput] = useState('');
   const [adminView, setAdminView] = useState('inventory');
@@ -21,18 +22,28 @@ function App() {
   const [editingItem, setEditingItem] = useState(null);
   const [formData, setFormData] = useState({ name: '', price: '', old_price: '', stock: 0, category: 'كهرباء ⚡', image: '', is_sale: false, out_of_stock: false });
   
-  // حالات العميل
+  // --- حالات العميل ---
   const [showCart, setShowCart] = useState(false);
   const [clientCat, setClientCat] = useState('الكل');
   const [itemQtys, setItemQtys] = useState({});
 
   const isAdmin = window.location.pathname.includes('/admin');
 
+  // 🛠️ الإصلاح الجذري للسرعة: جلب البيانات مرة واحدة فقط عند فتح الموقع
   useEffect(() => {
-    fetchProducts(); fetchSettings();
-    if (alert) setTimeout(() => setAlert(null), 3000);
+    fetchProducts(); 
+    fetchSettings();
+  }, []); // الأقواس الفارغة هنا تمنع التكرار والبطء نهائياً!
+
+  // 🛠️ التحكم في إخفاء الإشعارات فقط دون إعادة تحميل المنتجات
+  useEffect(() => {
+    if (alert) {
+      const timer = setTimeout(() => setAlert(null), 3000);
+      return () => clearTimeout(timer); // تنظيف الذاكرة
+    }
   }, [alert]);
 
+  // --- دوال الاتصال بقاعدة البيانات ---
   const fetchProducts = () => fetch(`${API_URL}/products`).then(r => r.json()).then(setProducts);
   const fetchSettings = () => fetch(`${API_URL}/settings`).then(r => r.json()).then(setSettings);
 
@@ -41,7 +52,8 @@ function App() {
     const url = editingItem ? `${API_URL}/products/${editingItem.id}` : `${API_URL}/products`;
     const res = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(formData) });
     if (res.ok) { 
-      setAlert("✅ تم حفظ التعديلات"); setEditingItem(null); 
+      setAlert("✅ تم حفظ التعديلات"); 
+      setEditingItem(null); 
       setFormData({ name: '', price: '', old_price: '', stock: 0, category: 'كهرباء ⚡', image: '', is_sale: false, out_of_stock: false });
       fetchProducts();
     }
@@ -54,6 +66,7 @@ function App() {
     fetchProducts();
   };
 
+  // --- دوال العميل والسلة ---
   const handleQtyChange = (id, change) => {
     setItemQtys(prev => ({ ...prev, [id]: Math.max(1, (prev[id] || 1) + change) }));
   };
@@ -66,12 +79,14 @@ function App() {
       const newCart = [...cart];
       newCart[existingItemIndex].qty += qtyToAdd;
       setCart(newCart);
-    } else { setCart([...cart, { ...product, qty: qtyToAdd }]); }
+    } else { 
+      setCart([...cart, { ...product, qty: qtyToAdd }]); 
+    }
     
     setAlert(`✅ تم إضافة ${qtyToAdd} قطعة للسلة`);
-    setItemQtys(prev => ({ ...prev, [product.id]: 1 }));
+    setItemQtys(prev => ({ ...prev, [product.id]: 1 })); // تصفير العداد بعد الإضافة
     
-    // تفعيل النبض
+    // تفعيل نبض السلة لشد الانتباه
     setBumpCart(true);
     setTimeout(() => setBumpCart(false), 300);
   };
@@ -83,8 +98,11 @@ function App() {
     setCart(newCart);
   };
 
-  // ------------------------- واجهة الإدارة -------------------------
+  // =========================================================================
+  // 1. واجهة الإدارة المحمية (Admin View)
+  // =========================================================================
   if (isAdmin) {
+    // شاشة القفل الملكية
     if (!isAuthenticated) {
       return (
         <div className="login-screen">
@@ -103,6 +121,7 @@ function App() {
       );
     }
 
+    // لوحة التحكم الأساسية 30/70
     const filteredAdmin = products.filter(p => p.name.includes(adminSearch) && (adminCat === 'الكل' || p.category === adminCat));
     return (
       <div className="admin-root">
@@ -155,8 +174,8 @@ function App() {
             <div className="card-ui">
               <h2 className="gold-text">🛠️ إعدادات النظام وتغيير الرمز</h2>
               <div className="form-group"><label>اسم المتجر</label><input value={settings.shop_name} onChange={e=>setSettings({...settings, shop_name:e.target.value})} /></div>
-              <div className="form-group"><label>رقم الواتساب للطلبات</label><input value={settings.phone} onChange={e=>setSettings({...settings, phone:e.target.value})} /></div>
-              <div className="form-group"><label>الرقم السري للدخول (PIN)</label><input type="password" value={settings.admin_pin} onChange={e=>setSettings({...settings, admin_pin:e.target.value})} /></div>
+              <div className="form-group"><label>رقم الواتساب للطلبات</label><input value={settings.phone} onChange={e=>setSettings({...settings, phone:e.target.value})} placeholder="9665xxxxxxxx" /></div>
+              <div className="form-group"><label>الرقم السري للدخول (PIN)</label><input type="text" value={settings.admin_pin} onChange={e=>setSettings({...settings, admin_pin:e.target.value})} /></div>
               <button className="gold-btn-action" onClick={async () => {
                 await fetch(`${API_URL}/settings`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(settings)});
                 setAlert("✅ تم حفظ الإعدادات بنجاح");
@@ -186,7 +205,9 @@ function App() {
     );
   }
 
-  // ------------------------- واجهة العميل -------------------------
+  // =========================================================================
+  // 2. واجهة العميل (Client View)
+  // =========================================================================
   const filteredClient = products.filter(p => clientCat === 'الكل' || p.category === clientCat);
 
   return (
@@ -198,12 +219,14 @@ function App() {
          <button className={`open-cart-large desktop-only ${bumpCart ? 'bump' : ''}`} onClick={() => setShowCart(true)}>🛒 السلة <span>{cart.length}</span></button>
       </header>
 
+      {/* شريط الأقسام */}
       <div className="client-category-bar">
         <button className={clientCat==='الكل'?'active':''} onClick={()=>setClientCat('الكل')}>🌐 الكل</button>
         <button className={clientCat==='كهرباء ⚡'?'active':''} onClick={()=>setClientCat('كهرباء ⚡')}>⚡ كهرباء</button>
         <button className={clientCat==='سباكة 💧'?'active':''} onClick={()=>setClientCat('سباكة 💧')}>💧 سباكة</button>
       </div>
 
+      {/* معرض المنتجات */}
       <div className="gallery-container">
         <div className="p-grid-royal">
           {filteredClient.map(p => (
@@ -237,12 +260,12 @@ function App() {
         </div>
       </div>
 
-      {/* زر السلة العائم للموبايل مع النبض */}
+      {/* زر السلة العائم للموبايل */}
       <button className={`floating-cart-btn mobile-only ${bumpCart ? 'bump' : ''}`} onClick={() => setShowCart(true)}>
         🛒 <span className="float-badge">{cart.length}</span>
       </button>
 
-      {/* السلة الذكية والواضحة */}
+      {/* السلة الذكية "ثابتة الأطراف" للموبايل والديسكتوب */}
       <div className={`cart-overlay ${showCart ? 'open' : ''}`}>
          <div className="cart-inner-container">
             <div className="cart-header-fixed">
@@ -252,7 +275,10 @@ function App() {
             
             <div className="cart-products-scroll">
                {cart.length === 0 ? (
-                 <div className="empty-cart-msg"><div className="empty-icon">🛒</div><p>سلتك فارغة بانتظار منتجاتنا الرائعة!</p></div>
+                 <div className="empty-cart-msg">
+                   <div className="empty-icon">🛒</div>
+                   <p>سلتك فارغة بانتظار منتجاتنا الرائعة!</p>
+                 </div>
                ) : (
                  cart.map((item, i) => (
                    <div key={i} className="cart-product-row">
@@ -272,17 +298,21 @@ function App() {
                )}
             </div>
 
-            {/* منطقة الدفع الثابتة والمشعة بالأزرار الكبيرة */}
             <div className="cart-action-fixed">
               <div className="total-gold-box">الإجمالي: <span>{cart.reduce((a,b)=>a+(Number(b.price)*b.qty),0)}</span> ريال</div>
               <div className="cart-buttons-row">
                 <button className="btn-continue-shopping" onClick={() => setShowCart(false)}>🛍️ إكمال التسوق</button>
-                <button className="btn-wa-confirm" disabled={cart.length === 0} onClick={() => {
+                <button 
+                  className="btn-wa-confirm" 
+                  disabled={cart.length === 0} 
+                  onClick={() => {
                     let msg = `*طلب جديد - ${settings.shop_name}* 💧⚡\n\n`;
                     cart.forEach(i => msg += `- ${i.name} [الكمية: ${i.qty}] | ${i.price * i.qty} ريال\n`);
                     msg += `\n*الإجمالي: ${cart.reduce((a,b)=>a+(Number(b.price)*b.qty),0)} ريال*`;
                     window.open(`https://wa.me/${settings.phone}?text=${encodeURIComponent(msg)}`);
-                  }}>تأكيد الطلب ✅</button>
+                  }}>
+                  تأكيد الطلب ✅
+                </button>
               </div>
             </div>
          </div>
