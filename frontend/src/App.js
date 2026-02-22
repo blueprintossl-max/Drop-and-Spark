@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import './App.css'; // ⚠️ هذا السطر هو شريان الحياة للتصميم! تأكد من وجوده
+import './App.css';
 
 const API_URL = 'https://drop-and-spark-1.onrender.com/api';
 
@@ -87,6 +87,7 @@ function App() {
               <div className="form-grid-3">
                  <input placeholder="الاسم" value={formData.name} onChange={e=>setFormData({...formData, name:e.target.value})}/>
                  <input placeholder="السعر" type="number" value={formData.price} onChange={e=>setFormData({...formData, price:e.target.value})}/>
+                 <input placeholder="السعر القديم (اختياري)" type="number" value={formData.old_price} onChange={e=>setFormData({...formData, old_price:e.target.value})}/>
                  <input placeholder="المخزون" type="number" value={formData.stock} onChange={e=>setFormData({...formData, stock:e.target.value})}/>
                  <select value={formData.category} onChange={e=>setFormData({...formData, category:e.target.value})}>
                     <option>كهرباء ⚡</option><option>سباكة 💧</option>
@@ -104,6 +105,7 @@ function App() {
     );
   }
 
+  // --- واجهة العميل (التعديل تم هنا فقط) ---
   return (
     <div className="App client-theme">
       {alert && <div className="toast-notification">{alert}</div>}
@@ -115,12 +117,19 @@ function App() {
         <div className="p-grid-royal">
           {products.map(p => (
             <div key={p.id} className="royal-p-card">
-              {p.is_sale && <div className="fire-tag">🔥 عرض ناري</div>}
               {p.out_of_stock && <div className="sold-tag">نفدت الكمية</div>}
               <div className="p-img-box"><img src={p.image} alt="" /></div>
               <div className="p-info-box">
                 <h4>{p.name}</h4>
-                <div className="p-price-tag">{p.price} ريال {p.old_price > 0 && <del>{p.old_price}</del>}</div>
+                
+                {/* منطقة السعر والعرض الخاص الجديدة */}
+                <div className="price-area">
+                  <span className="now-price">{p.price} ريال</span>
+                  {Number(p.old_price) > 0 && <del className="old-price">{p.old_price} ريال</del>}
+                </div>
+                {p.is_sale && <div className="fire-inline">🔥 عرض خاص</div>}
+                {/* ---------------------------------- */}
+
                 {!p.out_of_stock && <button className="add-btn-p" onClick={() => {setCart([...cart, p]); setAlert("✅ تم إضافة المنتج للسلة");}}>إضافة للسلة 🛒</button>}
               </div>
             </div>
