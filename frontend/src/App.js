@@ -28,9 +28,10 @@ function App() {
 
   const isAdmin = window.location.pathname.includes('/admin');
 
-  useEffect(() => {
+ useEffect(() => {
     fetchProducts(); fetchSettings(); fetchCategories();
-  }, []); 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (alert) {
