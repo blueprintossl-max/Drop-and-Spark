@@ -20,7 +20,8 @@ function App() {
   
   const [formData, setFormData] = useState({ name: '', price: '', old_price: '', stock: 0, category: '', image: '', is_sale: false, out_of_stock: false });
   const [newCatName, setNewCatName] = useState('');
-  const [newCatIcon, setNewCatIcon] = useState('📁'); 
+  // 🛠️ جعل رمز الكهرباء هو الرمز الافتراضي في القائمة المنسدلة
+  const [newCatIcon, setNewCatIcon] = useState('⚡'); 
   
   const [showCart, setShowCart] = useState(false);
   const [clientCat, setClientCat] = useState('الكل');
@@ -28,10 +29,10 @@ function App() {
 
   const isAdmin = window.location.pathname.includes('/admin');
 
- useEffect(() => {
+  useEffect(() => {
     fetchProducts(); fetchSettings(); fetchCategories();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, []); 
 
   useEffect(() => {
     if (alert) {
@@ -50,9 +51,31 @@ function App() {
   });
 
   const handleAddCategory = async () => {
-    if(!newCatName.trim()) return;
-    await fetch(`${API_URL}/categories`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ name: newCatName, icon: newCatIcon }) });
-    setNewCatName(''); setNewCatIcon('📁'); setAlert("✅ تم إضافة القسم بنجاح"); fetchCategories();
+    if(!newCatName.trim()) {
+      setAlert("⚠️ يرجى كتابة اسم القسم أولاً");
+      return;
+    }
+    
+    try {
+      const response = await fetch(`${API_URL}/categories`, { 
+        method: 'POST', 
+        headers: {'Content-Type':'application/json'}, 
+        body: JSON.stringify({ name: newCatName, icon: newCatIcon }) 
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        setAlert(`❌ ${data.error}`);
+      } else {
+        setNewCatName(''); 
+        setNewCatIcon('⚡'); 
+        setAlert("✅ تم إضافة القسم بنجاح"); 
+        fetchCategories();
+      }
+    } catch (err) {
+      setAlert("❌ حدث خطأ في الاتصال بالسيرفر");
+    }
   };
 
   const handleDeleteCategory = async (id) => {
@@ -139,7 +162,6 @@ function App() {
         <div className="login-screen">
           {alert && <div className="toast-notification">{alert}</div>}
           <div className="login-box">
-            {/* تم حذف كلمة "الملكية" نهائياً هنا */}
             <h1 className="gradient-text-large">الإدارة</h1>
             <p className="sub-login">أهلاً بك يا مدير النظام، يرجى إدخال الرمز</p>
             <input type="password" placeholder="الرقم السري..." value={pinInput} onChange={e => setPinInput(e.target.value)} />
@@ -210,11 +232,22 @@ function App() {
           {adminView === 'categories' ? (
             <div className="card-ui animated-fade">
               <h2 className="gradient-text">🗂️ إدارة الأقسام</h2>
+              
+              {/* 🛠️ القائمة المنسدلة للرموز ومربع النص الملون 🛠️ */}
               <div className="form-group add-cat-row">
-                <input className="icon-input" placeholder="⚡" value={newCatIcon} onChange={e=>setNewCatIcon(e.target.value)} maxLength="2"/>
-                <input className="name-input" placeholder="اسم القسم الجديد" value={newCatName} onChange={e=>setNewCatName(e.target.value)} />
+                <select className="icon-select" value={newCatIcon} onChange={e => setNewCatIcon(e.target.value)}>
+                  <option value="⚡">⚡ كهرباء</option>
+                  <option value="💧">💧 سباكة</option>
+                  <option value="💡">💡 إضاءة</option>
+                  <option value="🔌">🔌 أفياش</option>
+                  <option value="🚿">🚿 خلاطات</option>
+                  <option value="🛠️">🛠️ أدوات</option>
+                  <option value="📁">📁 عام</option>
+                </select>
+                <input className="name-input" placeholder="اكتب اسم القسم هنا..." value={newCatName} onChange={e=>setNewCatName(e.target.value)} />
                 <button className="gold-btn-action" onClick={handleAddCategory}>إضافة ➕</button>
               </div>
+
               <div className="cat-manage-list">
                 {categories.map(c => (
                   <div key={c.id} className="cat-manage-item">
@@ -291,30 +324,49 @@ function App() {
         <button className={clientCat==='الكل'?'active':''} onClick={()=>setClientCat('الكل')}>🌐 الكل</button>
         {categories.map(c => <button key={c.id} className={clientCat===c.name?'active':''} onClick={()=>setClientCat(c.name)}>{c.icon} {c.name}</button>)}
       </div>
+      
       <div className="gallery-container">
-        <div className="p-grid-royal">
-          {products.filter(p => clientCat === 'الكل' || p.category === clientCat).map(p => (
-            <div key={p.id} className="royal-p-card">
-              {p.out_of_stock && <div className="sold-tag">نفدت</div>}
-              {p.is_sale && <div className="fire-inline mobile-fire">🔥 عرض</div>}
-              <div className="p-img-box"><img src={p.image} alt="" /></div>
-              <div className="p-info-box">
-                <h4>{p.name}</h4>
-                <div className="price-area"><span className="now-price">{p.price} ريال</span>{Number(p.old_price) > 0 && <del className="old-price">{p.old_price}</del>}</div>
-                {!p.out_of_stock ? (
-                  <div className="action-area">
-                    <div className="qty-controls"><button onClick={() => handleQtyChange(p.id, 1)} className="qty-btn">+</button><span className="qty-display">{itemQtys[p.id] || 1}</span><button onClick={() => handleQtyChange(p.id, -1)} className="qty-btn">-</button></div>
-                    <button className="add-btn-p" onClick={() => addToCart(p)}>أضف 🛒</button>
-                  </div>
-                ) : <button className="add-btn-p disabled" disabled>غير متوفر</button>}
+        {filteredClient.length === 0 ? (
+          <div style={{
+            textAlign: 'center', 
+            padding: '60px 20px', 
+            background: 'white', 
+            borderRadius: '20px', 
+            border: '2px dashed var(--gold)', 
+            margin: '20px auto',
+            maxWidth: '500px',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.05)'
+          }}>
+            <div style={{fontSize: '4rem', marginBottom: '10px'}}>⏳</div>
+            <h2 className="gradient-text" style={{fontSize: '2rem', margin: '0 0 10px 0'}}>قريباً جداً!</h2>
+            <h3 style={{color: 'var(--navy)', margin: '0', lineHeight: '1.5'}}>نعمل على توفير أفضل وأحدث المنتجات في هذا القسم.. ترقبونا 🚀</h3>
+          </div>
+        ) : (
+          <div className="p-grid-royal">
+            {filteredClient.map(p => (
+              <div key={p.id} className="royal-p-card">
+                {p.out_of_stock && <div className="sold-tag">نفدت</div>}
+                {p.is_sale && <div className="fire-inline mobile-fire">🔥 عرض</div>}
+                <div className="p-img-box"><img src={p.image} alt="" /></div>
+                <div className="p-info-box">
+                  <h4>{p.name}</h4>
+                  <div className="price-area"><span className="now-price">{p.price} ريال</span>{Number(p.old_price) > 0 && <del className="old-price">{p.old_price}</del>}</div>
+                  {!p.out_of_stock ? (
+                    <div className="action-area">
+                      <div className="qty-controls"><button onClick={() => handleQtyChange(p.id, 1)} className="qty-btn">+</button><span className="qty-display">{itemQtys[p.id] || 1}</span><button onClick={() => handleQtyChange(p.id, -1)} className="qty-btn">-</button></div>
+                      <button className="add-btn-p" onClick={() => addToCart(p)}>أضف 🛒</button>
+                    </div>
+                  ) : <button className="add-btn-p disabled" disabled>غير متوفر</button>}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
+
       <button className="floating-cart-btn" onClick={() => setShowCart(true)}>🛒 <span className="float-badge">{cart.length}</span></button>
       <button className="floating-wa-btn" onClick={() => window.open(`https://wa.me/${settings.phone}`)}>💬</button>
-      {/* سلة المشتريات المحدثة */}
+      
       <div className={`cart-overlay ${showCart ? 'open' : ''}`}>
          <div className="cart-inner-container">
             <div className="cart-header-fixed"><h2>🛍️ سلتك</h2><button className="close-btn-x" onClick={() => setShowCart(false)}>❌</button></div>

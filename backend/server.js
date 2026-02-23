@@ -25,7 +25,7 @@ app.put('/api/settings', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// --- الأقسام الديناميكية ---
+// --- الأقسام (المحصنة ضد الانهيار) ---
 app.get('/api/categories', async (req, res) => {
   try {
     res.json(await sql`SELECT * FROM categories ORDER BY id ASC`);
@@ -35,16 +35,21 @@ app.get('/api/categories', async (req, res) => {
 app.post('/api/categories', async (req, res) => {
   try {
     const { name, icon } = req.body;
-    // إضافة القسم، وإذا كان الاسم مكرر نتجاهل الخطأ (ON CONFLICT DO NOTHING) لمنع الانهيار
-    const r = await sql`INSERT INTO categories (name, icon) VALUES (${name}, ${icon}) ON CONFLICT (name) DO NOTHING RETURNING *`;
+    if (!name || name.trim() === '') {
+      return res.status(400).json({ error: 'الاسم مطلوب' });
+    }
     
-    if (r.length === 0) {
+    // فحص ذكي: هل القسم موجود مسبقاً؟
+    const exist = await sql`SELECT * FROM categories WHERE name = ${name}`;
+    if (exist.length > 0) {
       return res.status(400).json({ error: 'هذا القسم موجود مسبقاً' });
     }
+    
+    const r = await sql`INSERT INTO categories (name, icon) VALUES (${name}, ${icon}) RETURNING *`;
     res.json(r[0]);
   } catch (err) {
     console.error("Database Error:", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'حدث خطأ داخلي في قاعدة البيانات' });
   }
 });
 
@@ -88,4 +93,4 @@ app.delete('/api/products/:id', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 المحرك يعمل بقوة، ومحمي من الانهيار`));
+app.listen(PORT, () => console.log(`🚀 السيرفر يعمل ومحمي من الانهيار`));
