@@ -20,15 +20,31 @@ app.put('/api/settings', async (req, res) => {
   res.json(s[0]);
 });
 
-// --- الأقسام (محدثة بالأيقونات) ---
+// --- الأقسام (المحدثة والذكية) ---
 app.get('/api/categories', async (req, res) => {
-  res.json(await sql`SELECT * FROM categories ORDER BY id ASC`);
+  try {
+    const cats = await sql`SELECT * FROM categories ORDER BY id ASC`;
+    res.json(cats);
+  } catch (err) {
+    res.json([]);
+  }
 });
+
 app.post('/api/categories', async (req, res) => {
-  const { name, icon } = req.body;
-  const r = await sql`INSERT INTO categories (name, icon) VALUES (${name}, ${icon}) RETURNING *`;
-  res.json(r[0]);
+  try {
+    const { name, icon } = req.body;
+    // حماية: التأكد من أن القسم غير موجود مسبقاً
+    const existing = await sql`SELECT * FROM categories WHERE name = ${name}`;
+    if (existing.length > 0) {
+      return res.status(400).json({ error: 'القسم موجود مسبقاً' });
+    }
+    const r = await sql`INSERT INTO categories (name, icon) VALUES (${name}, ${icon}) RETURNING *`;
+    res.json(r[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
+
 app.delete('/api/categories/:id', async (req, res) => {
   await sql`DELETE FROM categories WHERE id = ${req.params.id}`;
   res.json({ success: true });
@@ -36,7 +52,8 @@ app.delete('/api/categories/:id', async (req, res) => {
 
 // --- المنتجات ---
 app.get('/api/products', async (req, res) => {
-  res.json(await sql`SELECT * FROM products ORDER BY id DESC`);
+  const p = await sql`SELECT * FROM products ORDER BY id DESC`;
+  res.json(p);
 });
 app.post('/api/products', async (req, res) => {
   const { name, price, old_price, stock, category, image, is_sale, out_of_stock } = req.body;
@@ -56,4 +73,4 @@ app.delete('/api/products/:id', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 نظام الإدارة الشامل جاهز`));
+app.listen(PORT, () => console.log(`🚀 المحرك يعمل بقوة ومستعد للأقسام الديناميكية`));
