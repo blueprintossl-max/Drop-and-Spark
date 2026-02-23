@@ -9,14 +9,11 @@ app.use(express.json({ limit: '20mb' }));
 
 const sql = postgres(process.env.DATABASE_URL, { ssl: 'require' });
 
-// --- الإعدادات ---
+// --- الإعدادات (ملغاة مؤقتاً ومستبدلة بإحصائيات سريعة في الواجهة) ---
 app.get('/api/settings', async (req, res) => {
-  try {
-    const s = await sql`SELECT * FROM settings WHERE id = 1`;
-    res.json(s[0]);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  try { const s = await sql`SELECT * FROM settings WHERE id = 1`; res.json(s[0]); } 
+  catch (err) { res.status(500).json({ error: err.message }); }
 });
-
 app.put('/api/settings', async (req, res) => {
   try {
     const { phone, email, shop_name, admin_pin } = req.body;
@@ -25,46 +22,35 @@ app.put('/api/settings', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// --- الأقسام (المحصنة ضد الانهيار) ---
+// --- الأقسام المتفرعة ---
 app.get('/api/categories', async (req, res) => {
-  try {
-    res.json(await sql`SELECT * FROM categories ORDER BY id ASC`);
-  } catch (err) { res.json([]); }
+  try { res.json(await sql`SELECT * FROM categories ORDER BY id ASC`); } 
+  catch (err) { res.json([]); }
 });
 
 app.post('/api/categories', async (req, res) => {
   try {
-    const { name, icon } = req.body;
-    if (!name || name.trim() === '') {
-      return res.status(400).json({ error: 'الاسم مطلوب' });
-    }
+    const { name, icon, parent } = req.body;
+    if (!name || name.trim() === '') return res.status(400).json({ error: 'الاسم مطلوب' });
     
-    // فحص ذكي: هل القسم موجود مسبقاً؟
+    const p = parent || '';
     const exist = await sql`SELECT * FROM categories WHERE name = ${name}`;
-    if (exist.length > 0) {
-      return res.status(400).json({ error: 'هذا القسم موجود مسبقاً' });
-    }
+    if (exist.length > 0) return res.status(400).json({ error: 'القسم موجود مسبقاً' });
     
-    const r = await sql`INSERT INTO categories (name, icon) VALUES (${name}, ${icon}) RETURNING *`;
+    const r = await sql`INSERT INTO categories (name, icon, parent) VALUES (${name}, ${icon}, ${p}) RETURNING *`;
     res.json(r[0]);
-  } catch (err) {
-    console.error("Database Error:", err);
-    res.status(500).json({ error: 'حدث خطأ داخلي في قاعدة البيانات' });
-  }
+  } catch (err) { res.status(500).json({ error: 'حدث خطأ داخلي' }); }
 });
 
 app.delete('/api/categories/:id', async (req, res) => {
-  try {
-    await sql`DELETE FROM categories WHERE id = ${req.params.id}`;
-    res.json({ success: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  try { await sql`DELETE FROM categories WHERE id = ${req.params.id}`; res.json({ success: true }); } 
+  catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // --- المنتجات ---
 app.get('/api/products', async (req, res) => {
-  try {
-    res.json(await sql`SELECT * FROM products ORDER BY id DESC`);
-  } catch (err) { res.json([]); }
+  try { res.json(await sql`SELECT * FROM products ORDER BY id DESC`); } 
+  catch (err) { res.json([]); }
 });
 
 app.post('/api/products', async (req, res) => {
@@ -86,11 +72,9 @@ app.put('/api/products/:id', async (req, res) => {
 });
 
 app.delete('/api/products/:id', async (req, res) => {
-  try {
-    await sql`DELETE FROM products WHERE id = ${req.params.id}`;
-    res.json({ success: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  try { await sql`DELETE FROM products WHERE id = ${req.params.id}`; res.json({ success: true }); } 
+  catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 السيرفر يعمل ومحمي من الانهيار`));
+app.listen(PORT, () => console.log(`🚀 السيرفر جاهز لنظام الأقسام المتفرعة`));
