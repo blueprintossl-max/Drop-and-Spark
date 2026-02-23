@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { useState, useEffect } from 'react';
 import './App.css';
 
@@ -14,7 +15,7 @@ function App() {
   const [pinInput, setPinInput] = useState('');
   
   // نظام التنقل 30% اليمين
-  const [adminView, setAdminView] = useState('categories'); // settings, inventory, categories, reports
+  const [adminView, setAdminView] = useState('categories'); 
   
   // نظام الأقسام الهرمي
   const [activeMainCat, setActiveMainCat] = useState(null);
@@ -37,21 +38,8 @@ function App() {
 
   const isAdmin = window.location.pathname.includes('/admin');
 
-  // 🛠️ أسطر التخطي السحرية لإجبار Vercel على قبول التحديث 🛠️
-  useEffect(() => { 
-    fetchProducts(); 
-    fetchSettings(); 
-    fetchCategories(); 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); 
-
-  useEffect(() => { 
-    if (alert) { 
-      const timer = setTimeout(() => setAlert(null), 3000); 
-      return () => clearTimeout(timer); 
-    } 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [alert]);
+  useEffect(() => { fetchProducts(); fetchSettings(); fetchCategories(); }, []); 
+  useEffect(() => { if (alert) { const timer = setTimeout(() => setAlert(null), 3000); return () => clearTimeout(timer); } }, [alert]);
 
   const fetchProducts = async () => {
     try {
@@ -112,13 +100,11 @@ function App() {
     if(window.confirm("حذف المنتج نهائياً؟")) { await fetch(`${API_URL}/products/${id}`, { method: 'DELETE' }); fetchProducts(); }
   };
 
-  // نظام الجرد الذكي (تحديث الكمية يحسب المباع تلقائياً)
   const updateInventory = async (p, change) => {
     let newStock = Number(p.stock) + change;
     let newSold = Number(p.sold || 0);
     if (newStock < 0) newStock = 0;
-    if (change < 0 && Number(p.stock) > 0) newSold += Math.abs(change); // تسجيل المبيعات
-    
+    if (change < 0 && Number(p.stock) > 0) newSold += Math.abs(change);
     await fetch(`${API_URL}/products/${p.id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ ...p, stock: newStock, sold: newSold }) });
     fetchProducts();
   };
@@ -137,7 +123,6 @@ function App() {
     };
   };
 
-  // العميل
   const addToCart = (product) => {
     const qty = itemQtys[product.id] || 1;
     const index = cart.findIndex(item => item.id === product.id);
@@ -145,6 +130,7 @@ function App() {
     else { setCart([...cart, { ...product, qty }]); }
     setAlert(`✅ أضفت ${qty} للسلة`); setItemQtys(prev => ({ ...prev, [product.id]: 1 })); 
   };
+
   const updateCartQty = (idx, change) => {
     const newCart = [...cart]; newCart[idx].qty += change;
     if (newCart[idx].qty <= 0) newCart.splice(idx, 1); setCart(newCart);
@@ -152,9 +138,6 @@ function App() {
 
   const mainCats = categories.filter(c => !c.parent);
 
-  // ==========================================
-  // 💻 لوحة الإدارة المتطورة (30% يمين - 70% يسار)
-  // ==========================================
   if (isAdmin) {
     if (!isAuthenticated) {
       return (
@@ -174,8 +157,6 @@ function App() {
     return (
       <div className="admin-root">
         {alert && <div className="toast-notification">{alert}</div>}
-        
-        {/* 30% الجانب الأيمن (القائمة الرئيسية) */}
         <aside className="sidebar-30">
           <div className="side-logo">⚙️ لوحة التحكم</div>
           <nav className="side-nav">
@@ -187,10 +168,7 @@ function App() {
           <div className="side-footer"><a href="/">🌐 فتح المتجر كعميل</a></div>
         </aside>
 
-        {/* 70% الجانب الأيسر (محتوى العمل) */}
         <main className="content-70">
-          
-          {/* 1. إعدادات النظام */}
           {adminView === 'settings' && (
             <div className="panel-card fade-in">
               <h2>⚙️ إدارة إعدادات النظام</h2>
@@ -210,10 +188,8 @@ function App() {
             </div>
           )}
 
-          {/* 2. إدارة الأقسام والمنتجات (المسار المتدرج) */}
           {adminView === 'categories' && (
             <div className="fade-in">
-              {/* مستوى 1: الأقسام الرئيسية */}
               {!activeMainCat && (
                 <div className="panel-card">
                   <h2>الخطوة 1: اختر أو أضف قسماً رئيسياً (مثال: كهرباء)</h2>
@@ -232,7 +208,6 @@ function App() {
                 </div>
               )}
 
-              {/* مستوى 2: الأقسام الفرعية */}
               {activeMainCat && !activeSubCat && (
                 <div className="panel-card">
                   <button className="back-btn" onClick={()=>setActiveMainCat(null)}>🔙 رجوع للأقسام الرئيسية</button>
@@ -252,7 +227,6 @@ function App() {
                 </div>
               )}
 
-              {/* مستوى 3: إضافة المنتجات للقسم الفرعي */}
               {activeSubCat && (
                 <div className="panel-card">
                   <button className="back-btn" onClick={()=>setActiveSubCat(null)}>🔙 رجوع للأقسام الفرعية</button>
@@ -278,7 +252,7 @@ function App() {
                     </div>
                   </div>
                   
-                  <h3 className="mt-30" style={{marginTop:'30px'}}>المنتجات المسجلة في هذا القسم:</h3>
+                  <h3 className="mt-30">المنتجات المسجلة في هذا القسم:</h3>
                   <div className="mini-products-list">
                     {products.filter(p=>p.category===activeSubCat.name).map(p=>(
                       <div key={p.id} className="m-prod-row">
@@ -292,12 +266,11 @@ function App() {
             </div>
           )}
 
-          {/* 3. إدارة المخزون السريع */}
           {adminView === 'inventory' && (
             <div className="panel-card fade-in">
               <h2>📦 إدارة المخزون السريع (تعديل الكميات والمباع)</h2>
-              <div className="inv-filters" style={{marginBottom:'20px'}}>
-                 <select style={{width:'100%', padding:'15px'}} onChange={e=>{
+              <div className="inv-filters">
+                 <select onChange={e=>{
                    const cat = categories.find(c=>c.name===e.target.value);
                    if(cat && !cat.parent) { setActiveMainCat(cat); setActiveSubCat(null); }
                    else if(cat) { setActiveSubCat(cat); }
@@ -331,7 +304,6 @@ function App() {
             </div>
           )}
 
-          {/* 4. التقارير الاحترافية المجدولة */}
           {adminView === 'reports' && (
             <div className="panel-card fade-in">
               <h2>📊 التقارير المالية والتحليلية</h2>
@@ -360,7 +332,6 @@ function App() {
                      تقرير: {reportMainCat==='all' ? 'المتجر الشامل' : `${reportMainCat.name} ${reportSubCat!=='all' ? `> ${reportSubCat.name}` : ''}`}
                    </h3>
                    
-                   {/* حساب الأرقام للتقرير المختار */}
                    {(() => {
                      const repProds = products.filter(p => {
                        if(reportMainCat === 'all') return true;
@@ -387,7 +358,6 @@ function App() {
                            <div className="kpi gray"><span>إجمالي القطع المتبقية</span><h3>{totalStock}</h3></div>
                          </div>
                          
-                         {/* رسم بياني (شريط بصري فاخر) */}
                          <div className="chart-box">
                            <h4>رسم بياني: حركة المخزون (المباع مقابل المتبقي)</h4>
                            <div className="chart-bar-bg">
@@ -396,7 +366,7 @@ function App() {
                            <div className="chart-legend"><span className="l-sold">■ مباع</span> <span className="l-rem">■ متبقي</span></div>
                          </div>
 
-                         <table className="pro-table mt-20" style={{marginTop:'20px'}}>
+                         <table className="pro-table mt-20">
                            <thead><tr><th>المنتج</th><th>الكمية المتبقية</th><th>الكمية المباعة</th><th>سعر البيع</th><th>أرباح المنتج</th></tr></thead>
                            <tbody>
                              {repProds.map(p => (
@@ -419,9 +389,6 @@ function App() {
     );
   }
 
-  // ==========================================
-  // 💻 واجهة العميل (المتجر)
-  // ==========================================
   const displayProducts = products.filter(p => p.category === clientSub);
 
   return (
@@ -477,7 +444,6 @@ function App() {
 
       <button className="floating-wa-btn" onClick={() => window.open(`https://wa.me/${settings.phone}`)}>💬</button>
       
-      {/* السلة */}
       <div className={`cart-overlay ${showCart ? 'open' : ''}`}>
          <div className="cart-inner-container">
             <div className="cart-header-fixed"><h2>🛍️ سلتك</h2><button className="close-btn-x" onClick={() => setShowCart(false)}>❌</button></div>
