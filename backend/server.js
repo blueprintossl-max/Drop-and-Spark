@@ -20,12 +20,13 @@ app.put('/api/settings', async (req, res) => {
   res.json(s[0]);
 });
 
-// --- الأقسام الديناميكية (الجديد) ---
+// --- الأقسام (محدثة بالأيقونات) ---
 app.get('/api/categories', async (req, res) => {
   res.json(await sql`SELECT * FROM categories ORDER BY id ASC`);
 });
 app.post('/api/categories', async (req, res) => {
-  const r = await sql`INSERT INTO categories (name) VALUES (${req.body.name}) RETURNING *`;
+  const { name, icon } = req.body;
+  const r = await sql`INSERT INTO categories (name, icon) VALUES (${name}, ${icon}) RETURNING *`;
   res.json(r[0]);
 });
 app.delete('/api/categories/:id', async (req, res) => {
@@ -55,4 +56,4 @@ app.delete('/api/products/:id', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 نظام قطرة وشرارة جاهز مع الأقسام الديناميكية`));
+app.listen(PORT, () => console.log(`🚀 نظام الإدارة الشامل جاهز`));

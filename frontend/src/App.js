@@ -20,6 +20,7 @@ function App() {
   
   const [formData, setFormData] = useState({ name: '', price: '', old_price: '', stock: 0, category: '', image: '', is_sale: false, out_of_stock: false });
   const [newCatName, setNewCatName] = useState('');
+  const [newCatIcon, setNewCatIcon] = useState('📁'); // أيقونة القسم
   
   const [showCart, setShowCart] = useState(false);
   const [clientCat, setClientCat] = useState('الكل');
@@ -49,8 +50,8 @@ function App() {
 
   const handleAddCategory = async () => {
     if(!newCatName.trim()) return;
-    await fetch(`${API_URL}/categories`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ name: newCatName }) });
-    setNewCatName(''); setAlert("✅ تم إضافة القسم بنجاح"); fetchCategories();
+    await fetch(`${API_URL}/categories`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ name: newCatName, icon: newCatIcon }) });
+    setNewCatName(''); setNewCatIcon('📁'); setAlert("✅ تم إضافة القسم بنجاح"); fetchCategories();
   };
 
   const handleDeleteCategory = async (id) => {
@@ -86,12 +87,20 @@ function App() {
     const url = editingItem ? `${API_URL}/products/${editingItem.id}` : `${API_URL}/products`;
     const res = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(formData) });
     if (res.ok) { 
-      setAlert("✅ تم حفظ الصنف في القسم بنجاح"); 
+      setAlert("✅ تم حفظ الصنف بنجاح"); 
       setEditingItem(null); 
       const currentActiveCategory = adminCat !== 'الكل' ? adminCat : (categories.length > 0 ? categories[0].name : '');
       setFormData({ name: '', price: '', old_price: '', stock: 0, category: currentActiveCategory, image: '', is_sale: false, out_of_stock: false });
       fetchProducts();
     }
+  };
+
+  // 🛠️ دالة النقل السريع للمنتجات بين الأقسام
+  const quickCategoryChange = async (product, newCategory) => {
+    const updated = { ...product, category: newCategory };
+    await fetch(`${API_URL}/products/${product.id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(updated) });
+    setAlert(`✅ تم نقل المنتج إلى قسم ${newCategory}`);
+    fetchProducts();
   };
 
   const quickStockUpdate = async (product, change) => {
@@ -125,7 +134,7 @@ function App() {
   };
 
   // =========================================================================
-  // 1. الإدارة الملكية المتطورة (Admin Workspace)
+  // 1. الإدارة المتطورة
   // =========================================================================
   if (isAdmin) {
     if (!isAuthenticated) {
@@ -133,7 +142,7 @@ function App() {
         <div className="login-screen">
           {alert && <div className="toast-notification">{alert}</div>}
           <div className="login-box">
-            <h2>🔒 الإدارة الملكية</h2>
+            <h2 className="gradient-text-large">الإدارة</h2>
             <input type="password" placeholder="الرقم السري..." value={pinInput} onChange={e => setPinInput(e.target.value)} />
             <button onClick={() => {
               if (pinInput === settings.admin_pin) setIsAuthenticated(true); else setAlert("❌ رمز خاطئ!");
@@ -150,43 +159,55 @@ function App() {
         {alert && <div className="toast-notification">{alert}</div>}
         
         <aside className="sidebar-30">
-          <div className="side-logo">⚙️ مستودع الأقسام</div>
+          <div className="side-logo">⚙️ الإدارة</div>
           <div className="side-tools">
              <div className="cat-pills-admin">
                <button onClick={() => {
                  setAdminCat('الكل');
                  if(categories.length > 0) setFormData(prev => ({ ...prev, category: categories[0].name }));
                  setEditingItem(null); setAdminView('inventory');
-               }} className={adminCat==='الكل'?'active':''}>الكل</button>
+               }} className={adminCat==='الكل'?'active':''}>🌐 الكل</button>
                
                {categories.map(c => (
                  <button key={c.id} onClick={() => {
                    setAdminCat(c.name);
                    setFormData(prev => ({ ...prev, category: c.name }));
                    setEditingItem(null); setAdminView('inventory');
-                 }} className={adminCat===c.name?'active':''}>{c.name}</button>
+                 }} className={adminCat===c.name?'active':''}>{c.icon || '📁'} {c.name}</button>
                ))}
              </div>
              <input className="side-search" placeholder="🔍 ابحث في المنتجات..." onChange={e => setAdminSearch(e.target.value)} />
           </div>
           <nav className="side-nav">
-            <button onClick={() => setAdminView('inventory')} className={adminView==='inventory'?'active':''}>📦 لوحة الإدخال</button>
-            <button onClick={() => setAdminView('categories')} className={adminView==='categories'?'active':''}>🗂️ أضف قسم جديد</button>
-            <button onClick={() => setAdminView('reports')} className={adminView==='reports'?'active':''}>📊 التقارير المالية</button>
-            <button onClick={() => setAdminView('settings')} className={adminView==='settings'?'active':''}>🛠️ إعدادات المتجر</button>
+            <button onClick={() => setAdminView('inventory')} className={adminView==='inventory'?'active':''}>📦 المنتجات</button>
+            <button onClick={() => setAdminView('categories')} className={adminView==='categories'?'active':''}>🗂️ الأقسام</button>
+            <button onClick={() => setAdminView('reports')} className={adminView==='reports'?'active':''}>📊 التقارير</button>
+            <button onClick={() => setAdminView('settings')} className={adminView==='settings'?'active':''}>🛠️ الإعدادات</button>
             <a href="/" className="exit-btn">🏠 مشاهدة المتجر</a>
           </nav>
+          
           <div className="side-inventory-list">
              {filteredAdmin.map(p => (
                <div key={p.id} className="p-row-card">
                   <div className="p-row-clickable" onClick={() => {setEditingItem(p); setFormData(p); setAdminView('inventory');}}>
                     <img src={p.image} className="mini-thumb" alt="" />
-                    <div className="mini-meta"><span>{p.name}</span><small>مخزون: {p.stock}</small></div>
+                    <div className="mini-meta">
+                      <span>{p.name}</span>
+                      <small>مخزون: {p.stock}</small>
+                    </div>
                   </div>
-                  <div className="quick-stock-btns">
-                    <button onClick={() => quickStockUpdate(p, 1)}>+</button>
-                    <button onClick={() => quickStockUpdate(p, -1)}>-</button>
+                  
+                  {/* 🛠️ أداة نقل المنتج بين الأقسام */}
+                  <div className="transfer-box">
+                    <select className="category-transfer" value={p.category} onChange={(e) => quickCategoryChange(p, e.target.value)}>
+                      {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                    </select>
+                    <div className="quick-stock-btns-row">
+                      <button onClick={() => quickStockUpdate(p, 1)}>+</button>
+                      <button onClick={() => quickStockUpdate(p, -1)}>-</button>
+                    </div>
                   </div>
+
                </div>
              ))}
           </div>
@@ -194,33 +215,63 @@ function App() {
 
         <main className="content-70">
           {adminView === 'categories' ? (
-            <div className="card-ui">
-              <h2 className="gold-text">🗂️ إدارة الأقسام الحرة</h2>
-              <div className="form-group" style={{display:'flex', gap:'10px'}}>
-                <input style={{flex:1}} placeholder="اكتب اسم القسم هنا (مثال: أفياش ومفاتيح)" value={newCatName} onChange={e=>setNewCatName(e.target.value)} />
-                <button className="gold-btn-action" style={{width:'150px'}} onClick={handleAddCategory}>إضافة قسم ➕</button>
+            <div className="card-ui animated-fade">
+              <h2 className="gradient-text">🗂️ إدارة الأقسام وتخصيصها</h2>
+              <div className="form-group add-cat-row">
+                <input className="icon-input" placeholder="أيقونة (مثال: ⚡)" value={newCatIcon} onChange={e=>setNewCatIcon(e.target.value)} maxLength="2"/>
+                <input className="name-input" placeholder="اسم القسم (مثال: مفاتيح كهرباء)" value={newCatName} onChange={e=>setNewCatName(e.target.value)} />
+                <button className="gold-btn-action" onClick={handleAddCategory}>إضافة قسم ➕</button>
               </div>
               <div className="cat-manage-list">
-                {categories.length === 0 && <p style={{textAlign:'center', color:'#888'}}>لا توجد أقسام حالياً. أضف قسمك الأول!</p>}
+                {categories.length === 0 && <p className="empty-text">لا توجد أقسام حالياً. أضف قسمك الأول!</p>}
                 {categories.map(c => (
                   <div key={c.id} className="cat-manage-item">
-                    <span>{c.name}</span>
-                    <button onClick={() => handleDeleteCategory(c.id)}>حذف القسم ❌</button>
+                    <span>{c.icon || '📁'} {c.name}</span>
+                    <button className="delete-btn" onClick={() => handleDeleteCategory(c.id)}>حذف ❌</button>
                   </div>
                 ))}
               </div>
             </div>
+
           ) : adminView === 'reports' ? (
-            <div className="reports-view">
-               <h2 className="gold-text">📊 التقرير المالي الشامل</h2>
+            <div className="reports-view animated-fade">
+               <h2 className="gradient-text">📊 التقارير المجدولة والمفصلة</h2>
+               
                <div className="stats-grid">
-                  <div className="stat-card"><h3>قيمة البضاعة</h3><p>{products.reduce((a,b)=>a+(Number(b.price)*Number(b.stock)),0)} ريال</p></div>
-                  <div className="stat-card"><h3>إجمالي القطع</h3><p>{products.reduce((a,b)=>a+Number(b.stock),0)} قطعة</p></div>
+                  <div className="stat-card blue-glow"><h3>إجمالي قيمة المخزون</h3><p>{products.reduce((a,b)=>a+(Number(b.price)*Number(b.stock)),0)} ريال</p></div>
+                  <div className="stat-card green-glow"><h3>إجمالي عدد القطع</h3><p>{products.reduce((a,b)=>a+Number(b.stock),0)} قطعة</p></div>
+               </div>
+
+               <h3 className="sub-title">📑 جدول جرد المنتجات التفصيلي</h3>
+               <div className="table-responsive">
+                 <table className="report-table">
+                   <thead>
+                     <tr>
+                       <th>المنتج</th>
+                       <th>القسم</th>
+                       <th>سعر الوحدة</th>
+                       <th>الكمية المتوفرة</th>
+                       <th>القيمة الإجمالية</th>
+                     </tr>
+                   </thead>
+                   <tbody>
+                     {products.map(p => (
+                       <tr key={p.id}>
+                         <td>{p.name}</td>
+                         <td><span className="td-badge">{p.category}</span></td>
+                         <td>{p.price} ريال</td>
+                         <td className={p.stock <= 3 ? 'td-danger' : 'td-safe'}>{p.stock}</td>
+                         <td className="td-total">{Number(p.price) * Number(p.stock)} ريال</td>
+                       </tr>
+                     ))}
+                   </tbody>
+                 </table>
                </div>
             </div>
+
           ) : adminView === 'settings' ? (
-            <div className="card-ui">
-              <h2 className="gold-text">🛠️ الإعدادات والأمان</h2>
+            <div className="card-ui animated-fade">
+              <h2 className="gradient-text">🛠️ الإعدادات العامة</h2>
               <div className="form-group"><label>اسم المتجر</label><input value={settings.shop_name} onChange={e=>setSettings({...settings, shop_name:e.target.value})} /></div>
               <div className="form-group"><label>رقم الواتساب لاستقبال الطلبات</label><input value={settings.phone} onChange={e=>setSettings({...settings, phone:e.target.value})} /></div>
               <div className="form-group"><label>الرقم السري للإدارة (PIN)</label><input type="text" value={settings.admin_pin} onChange={e=>setSettings({...settings, admin_pin:e.target.value})} /></div>
@@ -230,9 +281,9 @@ function App() {
               }}>حفظ الإعدادات 💾</button>
             </div>
           ) : (
-            <div className="card-ui">
-              <h2 className="gold-text">
-                {editingItem ? '✏️ تعديل صنف مختار' : `➕ إضافة منتج جديد ${adminCat !== 'الكل' ? `في قسم (${adminCat})` : ''}`}
+            <div className="card-ui animated-fade">
+              <h2 className="gradient-text">
+                {editingItem ? '✏️ تعديل صنف' : `➕ إدخال منتج جديد ${adminCat !== 'الكل' ? `(قسم ${adminCat})` : ''}`}
               </h2>
               
               <div className="image-upload-section">
@@ -244,18 +295,21 @@ function App() {
               </div>
 
               <div className="form-grid-3">
-                 <input placeholder="اسم القطعة" value={formData.name} onChange={e=>setFormData({...formData, name:e.target.value})}/>
-                 <input placeholder="السعر الحالي (مثال: 15)" type="number" value={formData.price} onChange={e=>setFormData({...formData, price:e.target.value})}/>
-                 <input placeholder="السعر القديم المشطوب (اختياري)" type="number" value={formData.old_price} onChange={e=>setFormData({...formData, old_price:e.target.value})}/>
-                 <input placeholder="الكمية المتوفرة حالياً" type="number" value={formData.stock} onChange={e=>setFormData({...formData, stock:e.target.value})}/>
-                 <select value={formData.category} onChange={e=>setFormData({...formData, category:e.target.value})}>
-                    {categories.length === 0 && <option>يجب إضافة قسم أولاً من 🗂️ إضافة قسم</option>}
-                    {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                 </select>
+                 <div className="form-group"><label>اسم القطعة</label><input value={formData.name} onChange={e=>setFormData({...formData, name:e.target.value})}/></div>
+                 <div className="form-group"><label>القسم</label>
+                   <select value={formData.category} onChange={e=>setFormData({...formData, category:e.target.value})}>
+                      {categories.length === 0 && <option>يجب إضافة قسم أولاً</option>}
+                      {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                   </select>
+                 </div>
+                 <div className="form-group"><label>السعر الحالي</label><input type="number" value={formData.price} onChange={e=>setFormData({...formData, price:e.target.value})}/></div>
+                 <div className="form-group"><label>السعر القديم (لإظهار شطب)</label><input type="number" value={formData.old_price} onChange={e=>setFormData({...formData, old_price:e.target.value})}/></div>
+                 <div className="form-group"><label>الكمية المتوفرة حالياً</label><input type="number" value={formData.stock} onChange={e=>setFormData({...formData, stock:e.target.value})}/></div>
               </div>
+
               <div className="btn-toggle-row">
-                 <button className={`t-btn sale ${formData.is_sale?'on':''}`} onClick={()=>setFormData({...formData, is_sale:!formData.is_sale})}>🔥 وضع شارة (عرض خاص)</button>
-                 <button className={`t-btn stock ${formData.out_of_stock?'on':''}`} onClick={()=>setFormData({...formData, out_of_stock:!formData.out_of_stock})}>🚫 تحديد كـ (نفدت الكمية)</button>
+                 <button className={`t-btn sale ${formData.is_sale?'on':''}`} onClick={()=>setFormData({...formData, is_sale:!formData.is_sale})}>🔥 عرض خاص</button>
+                 <button className={`t-btn stock ${formData.out_of_stock?'on':''}`} onClick={()=>setFormData({...formData, out_of_stock:!formData.out_of_stock})}>🚫 نفدت الكمية</button>
               </div>
               <button className="btn-save-final" onClick={handleSave}>حفظ في المستودع 📦</button>
             </div>
@@ -266,7 +320,7 @@ function App() {
   }
 
   // =========================================================================
-  // 2. واجهة العميل (شاشات عرض مستقلة لكل قسم + أزرار عائمة)
+  // 2. واجهة العميل (بدون تغيير، استقلالية الأقسام تعمل ممتاز)
   // =========================================================================
   const filteredClient = products.filter(p => clientCat === 'الكل' || p.category === clientCat);
 
@@ -279,20 +333,18 @@ function App() {
          <button className={`open-cart-large desktop-only ${bumpCart ? 'bump' : ''}`} onClick={() => setShowCart(true)}>🛒 السلة <span>{cart.length}</span></button>
       </header>
 
-      {/* شريط أقسام العميل */}
       <div className="client-category-bar">
         <button className={clientCat==='الكل'?'active':''} onClick={()=>setClientCat('الكل')}>🌐 عرض الكل</button>
         {categories.map(c => (
-          <button key={c.id} className={clientCat===c.name?'active':''} onClick={()=>setClientCat(c.name)}>{c.name}</button>
+          <button key={c.id} className={clientCat===c.name?'active':''} onClick={()=>setClientCat(c.name)}>
+            {c.icon || ''} {c.name}
+          </button>
         ))}
       </div>
 
-      {/* المنتجات المعروضة بناءً على القسم المختار */}
       <div className="gallery-container">
         {filteredClient.length === 0 ? (
-          <div style={{textAlign: 'center', padding: '50px', color: '#888'}}>
-            <h3>لا توجد منتجات في هذا القسم حالياً.</h3>
-          </div>
+          <div style={{textAlign: 'center', padding: '50px', color: '#888'}}><h3>لا توجد منتجات في هذا القسم حالياً.</h3></div>
         ) : (
           <div className="p-grid-royal">
             {filteredClient.map(p => (
@@ -327,28 +379,18 @@ function App() {
         )}
       </div>
 
-      {/* 🛠️ زر السلة العائم */}
       <button className={`floating-cart-btn ${bumpCart ? 'bump' : ''}`} onClick={() => setShowCart(true)}>
         🛒 <span className="float-badge">{cart.length}</span>
       </button>
 
-      {/* 🛠️ زر الواتساب العائم الجديد (متحرك وثابت في الشاشة) */}
-      <button 
-        className="floating-wa-btn" 
-        onClick={() => window.open(`https://wa.me/${settings.phone}?text=${encodeURIComponent('مرحباً، لدي استفسار بخصوص المتجر...')}`)}
-        title="تواصل معنا عبر واتساب"
-      >
-        💬
-      </button>
+      <button className="floating-wa-btn" onClick={() => window.open(`https://wa.me/${settings.phone}?text=${encodeURIComponent('مرحباً...')}`)}>💬</button>
 
-      {/* السلة الذكية */}
       <div className={`cart-overlay ${showCart ? 'open' : ''}`}>
          <div className="cart-inner-container">
             <div className="cart-header-fixed">
               <h2>🛍️ تفاصيل الطلب</h2>
               <button className="close-btn-x" onClick={() => setShowCart(false)}>❌</button>
             </div>
-            
             <div className="cart-products-scroll">
                {cart.length === 0 ? (
                  <div className="empty-cart-msg"><div className="empty-icon">🛒</div><p>السلة فارغة، ابدأ التسوق الآن!</p></div>
@@ -370,7 +412,6 @@ function App() {
                  ))
                )}
             </div>
-
             <div className="cart-action-fixed">
               <div className="total-gold-box">المجموع الكلي: <span>{cart.reduce((a,b)=>a+(Number(b.price)*b.qty),0)}</span> ريال</div>
               <div className="cart-buttons-row">
