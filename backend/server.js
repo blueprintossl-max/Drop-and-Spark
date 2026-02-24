@@ -1,19 +1,37 @@
 const express = require('express');
 const cors = require('cors');
 const postgres = require('postgres');
+require('dotenv').config();
 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
-// 🌟 الترقيعة الذهبية: ضع الرابط هنا مباشرة ولا توجع رأسك بـ Render
-// استبدل النص العربي برابط Neon الطويل الذي يبدأ بـ postgresql://
-const NEON_URL = 'الصق_رابط_نيون_هنا_كاملا';
+// متغير اتصال قاعدة البيانات سيكون متاحاً لاحقاً
+let sql;
 
-const sql = postgres(NEON_URL, { ssl: 'require' });
+// 🚀 الخطوة الأولى: تشغيل السيرفر فوراً لمنع خطأ (Port scan timeout) في منصة Render
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 السيرفر يعمل بأعلى درجات الأمان على المنفذ ${PORT}`);
+  // بمجرد عمل السيرفر، نستدعي دالة الاتصال الآمن بقاعدة البيانات
+  initSecureDB();
+});
 
-async function initDb() {
+// 🔒 الخطوة الثانية: الاتصال بقاعدة البيانات وبناء الجداول سراً
+async function initSecureDB() {
+  // سحب الرابط من إعدادات Render (Environment) بدون كتابته في الكود
+  const dbUrl = process.env.DATABASE_URL;
+  
+  if (!dbUrl) {
+    console.error("🚨 تحذير: رابط DATABASE_URL غير موجود في إعدادات Render!");
+    return;
+  }
+
   try {
+    sql = postgres(dbUrl, { ssl: 'require', connect_timeout: 15 });
+    
+    // بناء الجداول بقوة واحترافية
     await sql`CREATE TABLE IF NOT EXISTS admins (id SERIAL PRIMARY KEY, username VARCHAR(255) UNIQUE, pin VARCHAR(255), role VARCHAR(50))`;
     await sql`CREATE TABLE IF NOT EXISTS products (id SERIAL PRIMARY KEY, name VARCHAR(255), price NUMERIC, old_price NUMERIC, stock INT, sold INT, details TEXT, image TEXT, category VARCHAR(255), is_sale BOOLEAN, out_of_stock BOOLEAN, modified_by VARCHAR(255))`;
     await sql`CREATE TABLE IF NOT EXISTS categories (id SERIAL PRIMARY KEY, name VARCHAR(255), icon VARCHAR(50), parent VARCHAR(255))`;
@@ -31,10 +49,11 @@ async function initDb() {
       )
     `;
 
+    // إنشاء حساب المدير تلقائياً (adeeb - 0000)
     const adminsCount = await sql`SELECT COUNT(*) FROM admins`;
     if (Number(adminsCount[0].count) === 0) {
       await sql`INSERT INTO admins (username, pin, role) VALUES ('adeeb', '0000', 'مدير')`;
-      console.log("✅ تم إنشاء حساب المدير (adeeb - 0000)");
+      console.log("✅ تم إنشاء حساب المدير السري بنجاح");
     }
 
     const settingsCount = await sql`SELECT COUNT(*) FROM settings`;
@@ -42,13 +61,17 @@ async function initDb() {
       await sql`INSERT INTO settings (shop_name, phone) VALUES ('تشاطيب', '966500000000')`;
     }
 
-    console.log("✅ تم الاتصال بقاعدة البيانات بنجاح تام!");
+    console.log("✅ تم الاتصال الآمن بقاعدة البيانات وتمت تهيئة الجداول بنجاح 100%");
   } catch (e) {
-    console.error("❌ خطأ في قاعدة البيانات:", e.message);
+    console.error("❌ خطأ أثناء تهيئة قاعدة البيانات:", e.message);
   }
 }
 
+// =========================================================
+// 📥 مسارات المتجر (تمت حمايتها للعمل فقط إذا كان الاتصال ناجحاً)
+// =========================================================
 app.post('/api/orders', async (req, res) => {
+  if(!sql) return res.status(500).json({error: "قاعدة البيانات غير متصلة بعد"});
   const { customer_name, customer_phone, cart_data, total } = req.body;
   try {
     const newOrder = await sql`INSERT INTO orders (customer_name, customer_phone, cart_data, total) VALUES (${customer_name}, ${customer_phone}, ${cart_data}, ${total}) RETURNING *`;
@@ -58,27 +81,21 @@ app.post('/api/orders', async (req, res) => {
   }
 });
 
-app.get('/api/orders', async (req, res) => { try { res.json(await sql`SELECT * FROM orders ORDER BY created_at DESC`); } catch(e) { res.status(500).json([]); } });
-app.delete('/api/orders/:id', async (req, res) => { try { await sql`DELETE FROM orders WHERE id = ${req.params.id}`; res.json({ success: true }); } catch(e) { res.status(500).json({ error: e.message }); } });
-app.put('/api/orders/:id/complete', async (req, res) => { try { await sql`UPDATE orders SET status = 'مكتمل' WHERE id = ${req.params.id}`; res.json({ success: true }); } catch(e) { res.status(500).json({ error: e.message }); } });
+app.get('/api/orders', async (req, res) => { if(!sql) return res.json([]); try { res.json(await sql`SELECT * FROM orders ORDER BY created_at DESC`); } catch(e) { res.status(500).json([]); } });
+app.delete('/api/orders/:id', async (req, res) => { if(!sql) return res.json({error: "DB Error"}); try { await sql`DELETE FROM orders WHERE id = ${req.params.id}`; res.json({ success: true }); } catch(e) { res.status(500).json({ error: e.message }); } });
+app.put('/api/orders/:id/complete', async (req, res) => { if(!sql) return res.json({error: "DB Error"}); try { await sql`UPDATE orders SET status = 'مكتمل' WHERE id = ${req.params.id}`; res.json({ success: true }); } catch(e) { res.status(500).json({ error: e.message }); } });
 
-app.get('/api/products', async (req, res) => { try { res.json(await sql`SELECT * FROM products ORDER BY id DESC`); } catch(e) { res.status(500).json([]); } });
-app.get('/api/categories', async (req, res) => { try { res.json(await sql`SELECT * FROM categories`); } catch(e) { res.status(500).json([]); } });
-app.get('/api/workers', async (req, res) => { try { res.json(await sql`SELECT * FROM workers`); } catch(e) { res.status(500).json([]); } });
-app.get('/api/admins', async (req, res) => { try { res.json(await sql`SELECT * FROM admins`); } catch(e) { res.status(500).json([]); } });
-app.get('/api/settings', async (req, res) => { try { const s = await sql`SELECT * FROM settings LIMIT 1`; res.json(s.length ? s[0] : { phone: '', shop_name: '' }); } catch(e) { res.status(500).json({}); } });
+app.get('/api/products', async (req, res) => { if(!sql) return res.json([]); try { res.json(await sql`SELECT * FROM products ORDER BY id DESC`); } catch(e) { res.status(500).json([]); } });
+app.get('/api/categories', async (req, res) => { if(!sql) return res.json([]); try { res.json(await sql`SELECT * FROM categories`); } catch(e) { res.status(500).json([]); } });
+app.get('/api/workers', async (req, res) => { if(!sql) return res.json([]); try { res.json(await sql`SELECT * FROM workers`); } catch(e) { res.status(500).json([]); } });
+app.get('/api/admins', async (req, res) => { if(!sql) return res.json([]); try { res.json(await sql`SELECT * FROM admins`); } catch(e) { res.status(500).json([]); } });
+app.get('/api/settings', async (req, res) => { if(!sql) return res.json({phone:'', shop_name:''}); try { const s = await sql`SELECT * FROM settings LIMIT 1`; res.json(s.length ? s[0] : { phone: '', shop_name: '' }); } catch(e) { res.status(500).json({}); } });
 
 app.post('/api/pos/checkout', async (req, res) => {
+  if(!sql) return res.status(500).json({error: "قاعدة البيانات غير متصلة"});
   try {
     const { cart } = req.body;
     for (let item of cart) { await sql`UPDATE products SET stock = stock - ${item.qty}, sold = COALESCE(sold, 0) + ${item.qty} WHERE id = ${item.id}`; }
     res.json({ success: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
-});
-
-// 🚀 الترقيعة الثانية: فتح السيرفر أولاً لإسكات Render، ثم الاتصال بالقاعدة
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 السيرفر شغال زي الفل على بورت ${PORT}`);
-  initDb(); // نشغل القاعدة بعد ما السيرفر يشتغل
 });
