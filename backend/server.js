@@ -9,9 +9,8 @@ app.use(express.json({ limit: '20mb' }));
 
 const sql = postgres(process.env.DATABASE_URL, { ssl: 'require' });
 
-// إعدادات النظام
 app.get('/api/settings', async (req, res) => {
-  try { const s = await sql`SELECT * FROM settings WHERE id = 1`; res.json(s[0]); } catch (err) { res.status(500).json({ error: err.message }); }
+  try { const s = await sql`SELECT * FROM settings WHERE id = 1`; res.json(s[0]); } catch (e) { res.status(500).send(e.message); }
 });
 
 app.put('/api/settings', async (req, res) => {
@@ -19,56 +18,53 @@ app.put('/api/settings', async (req, res) => {
     const { phone, email, shop_name, admin_pin } = req.body;
     const s = await sql`UPDATE settings SET phone=${phone}, email=${email}, shop_name=${shop_name}, admin_pin=${admin_pin} WHERE id=1 RETURNING *`;
     res.json(s[0]);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (e) { res.status(500).send(e.message); }
 });
 
-// الأقسام
 app.get('/api/categories', async (req, res) => {
-  try { res.json(await sql`SELECT * FROM categories ORDER BY id ASC`); } catch (err) { res.json([]); }
+  try { res.json(await sql`SELECT * FROM categories ORDER BY id ASC`); } catch (e) { res.json([]); }
 });
 
 app.post('/api/categories', async (req, res) => {
   try {
     const { name, icon, parent } = req.body;
-    if (!name || name.trim() === '') return res.status(400).json({ error: 'الاسم مطلوب' });
-    const p = parent || '';
+    if (!name) return res.status(400).json({ error: 'الاسم مطلوب' });
     const exist = await sql`SELECT * FROM categories WHERE name = ${name}`;
     if (exist.length > 0) return res.status(400).json({ error: 'موجود مسبقاً' });
-    const r = await sql`INSERT INTO categories (name, icon, parent) VALUES (${name}, ${icon}, ${p}) RETURNING *`;
+    const r = await sql`INSERT INTO categories (name, icon, parent) VALUES (${name}, ${icon}, ${parent || ''}) RETURNING *`;
     res.json(r[0]);
-  } catch (err) { res.status(500).json({ error: 'خطأ داخلي' }); }
+  } catch (e) { res.status(500).json({ error: 'خطأ داخلي' }); }
 });
 
 app.delete('/api/categories/:id', async (req, res) => {
-  try { await sql`DELETE FROM categories WHERE id = ${req.params.id}`; res.json({ success: true }); } catch (err) { res.status(500).json({ error: err.message }); }
+  try { await sql`DELETE FROM categories WHERE id = ${req.params.id}`; res.json({ success: true }); } catch (e) { res.status(500).send(e.message); }
 });
 
-// المنتجات
 app.get('/api/products', async (req, res) => {
-  try { res.json(await sql`SELECT * FROM products ORDER BY id DESC`); } catch (err) { res.json([]); }
+  try { res.json(await sql`SELECT * FROM products ORDER BY id DESC`); } catch (e) { res.json([]); }
 });
 
 app.post('/api/products', async (req, res) => {
   try {
-    const { name, price, old_price, stock, category, image, is_sale, out_of_stock } = req.body;
-    const r = await sql`INSERT INTO products (name, price, old_price, stock, sold, category, image, is_sale, out_of_stock) 
-    VALUES (${name}, ${price}, ${old_price}, ${stock}, 0, ${category}, ${image}, ${is_sale}, ${out_of_stock}) RETURNING *`;
+    const { name, price, old_price, stock, details, category, image, is_sale, out_of_stock } = req.body;
+    const r = await sql`INSERT INTO products (name, price, old_price, stock, sold, details, category, image, is_sale, out_of_stock) 
+    VALUES (${name}, ${price}, ${old_price}, ${stock}, 0, ${details || ''}, ${category}, ${image}, ${is_sale}, ${out_of_stock}) RETURNING *`;
     res.json(r[0]);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (e) { res.status(500).send(e.message); }
 });
 
 app.put('/api/products/:id', async (req, res) => {
   try {
-    const { name, price, old_price, stock, sold, category, image, is_sale, out_of_stock } = req.body;
+    const { name, price, old_price, stock, sold, details, category, image, is_sale, out_of_stock } = req.body;
     const r = await sql`UPDATE products SET name=${name}, price=${price}, old_price=${old_price}, stock=${stock}, sold=${sold}, 
-    category=${category}, image=${image}, is_sale=${is_sale}, out_of_stock=${out_of_stock} WHERE id=${req.params.id} RETURNING *`;
+    details=${details || ''}, category=${category}, image=${image}, is_sale=${is_sale}, out_of_stock=${out_of_stock} WHERE id=${req.params.id} RETURNING *`;
     res.json(r[0]);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (e) { res.status(500).send(e.message); }
 });
 
 app.delete('/api/products/:id', async (req, res) => {
-  try { await sql`DELETE FROM products WHERE id = ${req.params.id}`; res.json({ success: true }); } catch (err) { res.status(500).json({ error: err.message }); }
+  try { await sql`DELETE FROM products WHERE id = ${req.params.id}`; res.json({ success: true }); } catch (e) { res.status(500).send(e.message); }
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 السيرفر يعمل بالنظام المالي المتكامل`));
+app.listen(PORT, () => console.log(`🚀 السيرفر يعمل مع الميزات الـ 10 الجديدة`));
