@@ -33,14 +33,13 @@ function App() {
   // =========================================================================
   // 3. حالات شاشة الإدارة 
   // =========================================================================
-  const [adminView, setAdminView] = useState('pos'); // pos, inventory, categories, workers, reports, users, settings, profile
+  const [adminView, setAdminView] = useState('pos'); 
   
   const [activeMainCat, setActiveMainCat] = useState(null);
   const [activeSubCat, setActiveSubCat] = useState(null);
   const [newMainName, setNewMainName] = useState('');
   const [newSubName, setNewSubName] = useState('');
   
-  // المخزون الهرمي
   const [invMainCat, setInvMainCat] = useState(null);
   const [invSubCat, setInvSubCat] = useState(null);
   const [invBulkInputs, setInvBulkInputs] = useState({});
@@ -51,9 +50,10 @@ function App() {
   const [workerForm, setWorkerForm] = useState({ name: '', phone: '', details: '', image: '', region: '', city: '', profession: '', portfolio_img: '', safety_details: '', rating: '5.0', is_busy: false });
   const [editingWorker, setEditingWorker] = useState(null);
   
+  // 🌟 نظام الموظفين الجديد (يدعم التعديل)
   const [newAdminForm, setNewAdminForm] = useState({ username: '', pin: '', role: 'موظف' });
+  const [editingAdmin, setEditingAdmin] = useState(null);
 
-  // 🛒 حالات نقطة البيع (الكاشير) للإدارة
   const [adminCart, setAdminCart] = useState([]);
   const [vipDiscount, setVipDiscount] = useState('');
   const [posSearch, setPosSearch] = useState('');
@@ -100,18 +100,11 @@ function App() {
     } catch (error) { console.error("Data Fetch Error:", error); }
   };
 
-  // 🌟 نظام الدخول اليدوي
   const handleLogin = () => {
-    if (!loginUsername || !loginPin) {
-      setAlert("⚠️ يرجى إدخال اسم المستخدم والرمز السري");
-      return;
-    }
+    if (!loginUsername || !loginPin) return setAlert("⚠️ يرجى إدخال اسم المستخدم والرمز السري");
     const user = admins.find(a => a.username.trim() === loginUsername.trim() && a.pin === loginPin);
     if (user) { 
-      setCurrentUser(user); 
-      setIsAuthenticated(true); 
-      setAdminView('pos'); // توجيه الموظف مباشرة لشاشة الكاشير
-      setAlert(`✅ أهلاً بك يا ${user.username}`); 
+      setCurrentUser(user); setIsAuthenticated(true); setAdminView('pos'); setAlert(`✅ أهلاً بك يا ${user.username}`); 
     } else { 
       setAlert("❌ بيانات الدخول غير صحيحة"); 
     }
@@ -134,16 +127,13 @@ function App() {
     } catch (error) { setAlert("❌ حدث خطأ"); }
   };
 
-  // 🌟 نظام الكاشير واعتماد السلة
+  // 🌟 الكاشير
   const addToAdminCart = (product) => {
     if (product.stock <= 0) return setAlert("❌ هذا المنتج غير متوفر في المستودع");
-    
     const existingIndex = adminCart.findIndex(item => item.id === product.id);
     if (existingIndex >= 0) { 
       const newCart = [...adminCart];
-      if (newCart[existingIndex].qty >= product.stock) {
-         return setAlert("❌ لا يوجد كمية إضافية في المستودع");
-      }
+      if (newCart[existingIndex].qty >= product.stock) return setAlert("❌ لا يوجد كمية إضافية في المستودع");
       newCart[existingIndex].qty += 1; 
       setAdminCart(newCart); 
     } else { 
@@ -154,11 +144,7 @@ function App() {
   const updateAdminCartQty = (index, change) => {
     const newCart = [...adminCart]; 
     const item = newCart[index];
-    
-    if (change > 0 && item.qty >= item.stock) {
-       return setAlert("❌ الكمية المطلوبة تتجاوز المخزون");
-    }
-    
+    if (change > 0 && item.qty >= item.stock) return setAlert("❌ الكمية المطلوبة تتجاوز المخزون");
     item.qty += change; 
     if (item.qty <= 0) newCart.splice(index, 1); 
     setAdminCart(newCart); 
@@ -166,39 +152,52 @@ function App() {
 
   const handleCheckoutPOS = async () => {
     if (adminCart.length === 0) return setAlert("⚠️ السلة فارغة");
-    
     try {
       const res = await fetch(`${API_URL}/pos/checkout`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          cart: adminCart, 
-          modified_by: currentUser.username 
-        })
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cart: adminCart, modified_by: currentUser.username })
       });
-      
       if (res.ok) {
         setAlert("✅ تم اعتماد الطلب، وخصم المخزون بنجاح!");
-        setAdminCart([]); // تفريغ السلة بعد البيع
-        setVipDiscount('');
-        fetchAllData(); // تحديث الأرقام
+        setAdminCart([]); setVipDiscount(''); fetchAllData(); 
       }
-    } catch (error) {
-      setAlert("❌ حدث خطأ أثناء اعتماد الطلب");
-    }
+    } catch (error) { setAlert("❌ حدث خطأ أثناء اعتماد الطلب"); }
   };
 
-  const handleAddAdmin = async () => {
+  // 🌟 نظام الموظفين الجديد (إضافة + تعديل)
+  const handleSaveAdmin = async () => {
     if (!newAdminForm.username || !newAdminForm.pin) return setAlert("⚠️ يرجى إدخال اسم الموظف والرمز");
+    
+    const method = editingAdmin ? 'PUT' : 'POST';
+    const url = editingAdmin ? `${API_URL}/admins/${editingAdmin.id}` : `${API_URL}/admins`;
+
     try {
-      const res = await fetch(`${API_URL}/admins`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newAdminForm) });
-      if (res.ok) { setAlert("✅ تم إضافة الموظف"); setNewAdminForm({ username: '', pin: '', role: 'موظف' }); fetchAllData(); } 
-      else { setAlert("❌ اسم الموظف مسجل مسبقاً"); }
+      const res = await fetch(url, { 
+        method: method, 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(newAdminForm) 
+      });
+      
+      if (res.ok) { 
+        setAlert(editingAdmin ? "✅ تم تحديث بيانات الموظف بنجاح" : "✅ تم إضافة الموظف بنجاح"); 
+        setNewAdminForm({ username: '', pin: '', role: 'موظف' }); 
+        setEditingAdmin(null);
+        fetchAllData(); 
+      } else { 
+        setAlert("❌ اسم الموظف مسجل مسبقاً، يرجى اختيار اسم آخر"); 
+      }
     } catch (e) { console.error(e); }
   };
 
-  const handleDeleteAdmin = async (id) => { if (window.confirm("حذف الموظف نهائياً؟")) { await fetch(`${API_URL}/admins/${id}`, { method: 'DELETE' }); setAlert("🗑️ تم الحذف"); fetchAllData(); } };
+  const handleDeleteAdmin = async (id) => { 
+    if (window.confirm("هل أنت متأكد من حذف الموظف نهائياً؟")) { 
+      await fetch(`${API_URL}/admins/${id}`, { method: 'DELETE' }); 
+      setAlert("🗑️ تم الحذف"); 
+      fetchAllData(); 
+    } 
+  };
 
+  // باقي الدوال (منتجات، عمال، الخ)
   const handleSaveProduct = async () => {
     if (!formData.name) return setAlert("⚠️ يرجى إدخال اسم المنتج");
     const method = editingItem ? 'PUT' : 'POST';
@@ -208,7 +207,6 @@ function App() {
     setAlert("✅ تم حفظ المنتج"); setEditingItem(null); setFormData({ name: '', price: '', old_price: '', stock: '', details: '', image: '', is_sale: false, out_of_stock: false }); fetchAllData();
   };
 
-  // نظام الجرد المجمع اليدوي (باقي كما طلبته للحالات الفردية)
   const handleBulkInventoryUpdate = async (product, isAdding) => {
     const qtyInput = invBulkInputs[product.id];
     const amount = Number(qtyInput);
@@ -220,16 +218,13 @@ function App() {
     if (isAdding) { newStock += amount; } 
     else {
       if (newStock < amount) return setAlert("❌ الكمية المراد بيعها أكبر من المخزون!");
-      newStock -= amount; 
-      newSold += amount;  
+      newStock -= amount; newSold += amount;  
     }
-
     const payload = { ...product, stock: newStock, sold: newSold, modified_by: currentUser.username };
     try {
       await fetch(`${API_URL}/products/${product.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); 
       setAlert(isAdding ? `✅ تم تزويد المستودع بـ ${amount} قطعة` : `✅ تم تسجيل بيع ${amount} قطعة بنجاح`);
-      setInvBulkInputs(prev => ({ ...prev, [product.id]: '' }));
-      fetchAllData();
+      setInvBulkInputs(prev => ({ ...prev, [product.id]: '' })); fetchAllData();
     } catch (e) { setAlert("❌ حدث خطأ في تحديث الجرد"); }
   };
 
@@ -268,7 +263,6 @@ function App() {
     };
   };
 
-  // دوال سلة العميل في المتجر
   const addToCart = (product, qty = 1) => {
     const customQty = itemQtys[product.id] || qty;
     const existingIndex = cart.findIndex(item => item.id === product.id);
@@ -321,7 +315,7 @@ function App() {
             {isManager && (
               <>
                 <button className={adminView === 'reports' ? 'active' : ''} onClick={() => setAdminView('reports')}>📊 التقارير والأرباح</button>
-                <button className={adminView === 'users' ? 'active' : ''} onClick={() => setAdminView('users')}>👥 الموظفين والصلاحيات</button>
+                <button className={adminView === 'users' ? 'active' : ''} onClick={() => {setAdminView('users'); setEditingAdmin(null); setNewAdminForm({username:'', pin:'', role:'موظف'});}}>👥 الموظفين والصلاحيات</button>
                 <button className={adminView === 'settings' ? 'active' : ''} onClick={() => setAdminView('settings')}>⚙️ إعدادات المتجر</button>
               </>
             )}
@@ -342,66 +336,36 @@ function App() {
             </div>
           )}
 
-          {/* ==================== 0. نظام الكاشير (نقطة البيع السريعة) ==================== */}
+          {/* ==================== 0. الكاشير (نقطة البيع) ==================== */}
           {adminView === 'pos' && (
             <div className="pos-container fade-in">
-              
-              {/* قسم المنتجات (يمين) */}
               <div className="pos-products-section">
-                <input 
-                  type="text" 
-                  className="pos-search" 
-                  placeholder="🔍 ابحث عن منتج لإضافته للسلة..." 
-                  value={posSearch} 
-                  onChange={e => setPosSearch(e.target.value)}
-                />
-                
+                <input type="text" className="pos-search" placeholder="🔍 ابحث عن منتج لإضافته للسلة..." value={posSearch} onChange={e => setPosSearch(e.target.value)}/>
                 <div className="pos-grid">
                   {products.filter(p => p.name.includes(posSearch)).slice(0, 20).map(product => (
                     <div key={product.id} className="pos-card" onClick={() => addToAdminCart(product)}>
                       {product.stock <= 0 && <div className="pos-out">نفدت الكمية</div>}
                       <img src={product.image || 'https://via.placeholder.com/100'} alt=""/>
-                      <h5>{product.name}</h5>
-                      <span className="pos-price">{product.price} ر.س</span>
-                      <span className="pos-stock">المتوفر: {product.stock}</span>
+                      <h5>{product.name}</h5><span className="pos-price">{product.price} ر.س</span><span className="pos-stock">المتوفر: {product.stock}</span>
                     </div>
                   ))}
                 </div>
               </div>
               
-              {/* قسم الفاتورة (يسار) */}
               <div className="pos-cart-section">
                 <h3>سلة المبيعات (الكاشير)</h3>
-                
                 <div className="pos-cart-items">
                   {adminCart.length === 0 && <div className="pos-empty">السلة فارغة حالياً</div>}
                   {adminCart.map((item, index) => (
                     <div key={index} className="pos-cart-row">
-                      <div className="pos-cart-info">
-                        <b>{item.name}</b>
-                        <span>{item.price} ر.س</span>
-                      </div>
-                      <div className="pos-qty-controls">
-                        <button onClick={() => updateAdminCartQty(index, 1)}>+</button>
-                        <span>{item.qty}</span>
-                        <button onClick={() => updateAdminCartQty(index, -1)}>-</button>
-                      </div>
+                      <div className="pos-cart-info"><b>{item.name}</b><span>{item.price} ر.س</span></div>
+                      <div className="pos-qty-controls"><button onClick={() => updateAdminCartQty(index, 1)}>+</button><span>{item.qty}</span><button onClick={() => updateAdminCartQty(index, -1)}>-</button></div>
                     </div>
                   ))}
                 </div>
                 
                 <div className="pos-checkout-area">
-                  <div className="vip-discount-box">
-                    <label>🎁 خصم عميل مميز (%):</label>
-                    <input 
-                      type="number" 
-                      placeholder="مثال: 10" 
-                      value={vipDiscount} 
-                      onChange={e => setVipDiscount(e.target.value)} 
-                      min="0" max="100"
-                    />
-                  </div>
-                  
+                  <div className="vip-discount-box"><label>🎁 خصم عميل مميز (%):</label><input type="number" placeholder="10" value={vipDiscount} onChange={e => setVipDiscount(e.target.value)} min="0" max="100"/></div>
                   <div className="pos-totals">
                     {(() => {
                       const subtotal = adminCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
@@ -416,10 +380,7 @@ function App() {
                       );
                     })()}
                   </div>
-                  
-                  <button className="pos-checkout-btn" onClick={handleCheckoutPOS}>
-                    اعتماد الطلب وخصم المخزون ✅
-                  </button>
+                  <button className="pos-checkout-btn" onClick={handleCheckoutPOS}>اعتماد الطلب وخصم المخزون ✅</button>
                 </div>
               </div>
             </div>
@@ -438,7 +399,7 @@ function App() {
             </div>
           )}
 
-          {/* ==================== 1. المخزون (الجرد اليدوي) ==================== */}
+          {/* ==================== 1. المخزون ==================== */}
           {adminView === 'inventory' && (
             <div className="fade-in">
               {!invMainCat ? (
@@ -534,7 +495,7 @@ function App() {
             </div>
           )}
 
-          {/* ==================== 4. التقارير (للمدير فقط) ==================== */}
+          {/* ==================== 4. التقارير ==================== */}
           {adminView === 'reports' && isManager && (
             <div className="panel-card fade-in"><h2>📊 التقارير المالية</h2>
               <div className="reports-split-container">
@@ -558,24 +519,51 @@ function App() {
             </div>
           )}
 
-          {/* ==================== 5. الموظفين (للمدير فقط) ==================== */}
+          {/* ==================== 5. إدارة الموظفين الجديدة كلياً (إضافة وتعديل) ==================== */}
           {adminView === 'users' && isManager && (
-            <div className="panel-card fade-in"><h2>👥 إدارة الموظفين</h2>
+            <div className="panel-card fade-in"><h2>👥 إدارة الموظفين والصلاحيات</h2>
               <div className="add-row mb-20" style={{background:'#f9f9f9', padding:'20px', borderRadius:'10px'}}>
                 <input placeholder="اسم الموظف..." value={newAdminForm.username} onChange={e => setNewAdminForm({...newAdminForm, username: e.target.value})}/>
                 <input placeholder="الرمز السري..." type="password" value={newAdminForm.pin} onChange={e => setNewAdminForm({...newAdminForm, pin: e.target.value})}/>
-                <select value={newAdminForm.role} onChange={e => setNewAdminForm({...newAdminForm, role: e.target.value})} style={{padding:'12px', borderRadius:'8px'}}><option value="موظف">موظف (مخزون ومنتجات وكاشير)</option><option value="مدير">مدير (كافة الصلاحيات)</option></select>
-                <button className="add-btn" onClick={handleAddAdmin}>إضافة موظف</button>
+                <select value={newAdminForm.role} onChange={e => setNewAdminForm({...newAdminForm, role: e.target.value})} style={{padding:'12px', borderRadius:'8px'}}>
+                  <option value="موظف">موظف (مخزون ومنتجات وكاشير)</option>
+                  <option value="مدير">مدير (كافة الصلاحيات)</option>
+                </select>
+                <button className="add-btn" onClick={handleSaveAdmin} style={{background: editingAdmin ? 'var(--navy)' : 'var(--gold)', color: editingAdmin ? 'white' : 'var(--navy)'}}>
+                  {editingAdmin ? 'حفظ التعديلات 💾' : 'إضافة موظف ➕'}
+                </button>
+                {editingAdmin && (
+                  <button className="del-btn-sq" style={{background:'#aaa'}} onClick={() => {setEditingAdmin(null); setNewAdminForm({username:'', pin:'', role:'موظف'});}}>إلغاء</button>
+                )}
               </div>
-              <table className="pro-table"><thead><tr><th>اسم الموظف</th><th>الصلاحية</th><th>الرمز السري</th><th>إجراء</th></tr></thead>
+              
+              <table className="pro-table">
+                <thead><tr><th>اسم الموظف</th><th>الصلاحية</th><th>الرمز السري</th><th>إجراءات</th></tr></thead>
                 <tbody>
-                  {admins.map(adminUser => (<tr key={adminUser.id}><td>{adminUser.username}</td><td><span className="sc-badge">{adminUser.role}</span></td><td>{adminUser.pin}</td><td>{adminUser.username !== 'المدير العام' ? (<button className="del-btn-sq" onClick={() => handleDeleteAdmin(adminUser.id)}>حذف</button>) : (<span style={{color: '#888', fontSize: '0.8rem'}}>أساسي</span>)}</td></tr>))}
+                  {admins.map(adminUser => (
+                    <tr key={adminUser.id}>
+                      <td>{adminUser.username}</td>
+                      <td><span className="sc-badge">{adminUser.role}</span></td>
+                      <td>{adminUser.pin}</td>
+                      <td>
+                        {/* زر التعديل متاح للجميع */}
+                        <button className="act-btn edit" style={{marginRight: '5px'}} onClick={() => { setEditingAdmin(adminUser); setNewAdminForm({ username: adminUser.username, pin: adminUser.pin, role: adminUser.role }); }}>تعديل ✏️</button>
+                        
+                        {/* 🔒 الحماية الذكية: تمنع المدير من حذف الحساب الذي يسجل الدخول به حالياً */}
+                        {adminUser.id !== currentUser.id ? (
+                          <button className="del-btn-sq" onClick={() => handleDeleteAdmin(adminUser.id)}>حذف 🗑️</button>
+                        ) : (
+                          <span style={{color: '#888', fontSize: '0.8rem'}}>حسابك الحالي</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
           )}
 
-          {/* ==================== 6. الإعدادات (للمدير فقط) ==================== */}
+          {/* ==================== 6. الإعدادات ==================== */}
           {adminView === 'settings' && isManager && (
             <div className="panel-card fade-in"><h2>⚙️ إعدادات المتجر</h2><div className="settings-grid"><div className="form-group"><label>اسم المتجر</label><input value={settings.shop_name} onChange={e => setSettings({...settings, shop_name: e.target.value})}/></div><div className="form-group"><label>رقم واتساب الطلبات</label><input value={settings.phone} onChange={e => setSettings({...settings, phone: e.target.value})}/></div></div><button className="save-btn full-w-btn" onClick={async () => { await fetch(`${API_URL}/settings`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) }); setAlert("✅ تم الحفظ");}}>حفظ</button></div>
           )}
@@ -655,7 +643,6 @@ function App() {
       <button className="floating-wa-btn" onClick={() => window.open(`https://wa.me/${settings.phone}`)}>💬</button>
       {cart.length > 0 && (<div className="mobile-sticky-cart" onClick={() => setShowCart(true)}><div className="m-cart-info">🛒 في السلة: <b>{cart.length}</b></div><div className="m-cart-total">{cart.reduce((sum, item) => sum + (item.price * item.qty), 0)} ر.س</div></div>)}
 
-      {/* المودال ونوافذ العمال (نفس الكود السابق تماما) */}
       {showWorkersHaraj && (
         <div className="product-modal-overlay" onClick={() => setShowWorkersHaraj(false)}>
           <div className="worker-haraj-modal fade-in-up" onClick={e => e.stopPropagation()}>

@@ -24,11 +24,8 @@ app.get('/api/admins', async (req, res) => {
 app.post('/api/admins', async (req, res) => {
   try {
     const { username, pin, role } = req.body;
-    
     const existing = await sql`SELECT * FROM admins WHERE username = ${username}`;
-    if (existing.length > 0) {
-      return res.status(400).json({ error: 'اسم المستخدم موجود مسبقاً' });
-    }
+    if (existing.length > 0) return res.status(400).json({ error: 'اسم المستخدم موجود مسبقاً' });
     
     const newAdmin = await sql`
       INSERT INTO admins (username, pin, role) 
@@ -36,6 +33,30 @@ app.post('/api/admins', async (req, res) => {
       RETURNING *
     `;
     res.json(newAdmin[0]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 🌟 مسار جديد: تعديل بيانات الموظف كاملة (الاسم، الرقم، الصلاحية) من لوحة المدير
+app.put('/api/admins/:id', async (req, res) => {
+  try {
+    const { username, pin, role } = req.body;
+    const adminId = Number(req.params.id);
+    
+    // التأكد أن الاسم الجديد غير مستخدم من قبل موظف آخر
+    const existing = await sql`SELECT * FROM admins WHERE username = ${username} AND id != ${adminId}`;
+    if (existing.length > 0) {
+      return res.status(400).json({ error: 'اسم المستخدم موجود مسبقاً' });
+    }
+    
+    const updatedAdmin = await sql`
+      UPDATE admins 
+      SET username = ${username}, pin = ${pin}, role = ${role}
+      WHERE id = ${adminId} 
+      RETURNING *
+    `;
+    res.json(updatedAdmin[0]);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -50,19 +71,12 @@ app.delete('/api/admins/:id', async (req, res) => {
   }
 });
 
-// تغيير الرقم السري للموظف
+// مسار تغيير الرقم السري للموظف من صفحة حسابه
 app.put('/api/admins/:id/pin', async (req, res) => {
   try {
     const { newPin } = req.body;
     const adminId = Number(req.params.id);
-    
-    const updatedAdmin = await sql`
-      UPDATE admins 
-      SET pin = ${newPin} 
-      WHERE id = ${adminId} 
-      RETURNING *
-    `;
-    
+    const updatedAdmin = await sql`UPDATE admins SET pin = ${newPin} WHERE id = ${adminId} RETURNING *`;
     res.json(updatedAdmin[0]);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -73,39 +87,22 @@ app.put('/api/admins/:id/pin', async (req, res) => {
 // 2. إعدادات المتجر
 // ==================================================================
 app.get('/api/settings', async (req, res) => {
-  try {
-    const s = await sql`SELECT * FROM settings WHERE id = 1`;
-    res.json(s[0]);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  try { const s = await sql`SELECT * FROM settings WHERE id = 1`; res.json(s[0]); } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
 app.put('/api/settings', async (req, res) => {
   try {
     const { phone, email, shop_name } = req.body;
-    const s = await sql`
-      UPDATE settings 
-      SET phone=${phone}, email=${email}, shop_name=${shop_name} 
-      WHERE id=1 
-      RETURNING *
-    `;
+    const s = await sql`UPDATE settings SET phone=${phone}, email=${email}, shop_name=${shop_name} WHERE id=1 RETURNING *`;
     res.json(s[0]);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
 // ==================================================================
 // 3. حراج العمال والمقاولين
 // ==================================================================
 app.get('/api/workers', async (req, res) => {
-  try {
-    const workers = await sql`SELECT * FROM workers ORDER BY id DESC`;
-    res.json(workers);
-  } catch (error) {
-    res.json([]);
-  }
+  try { res.json(await sql`SELECT * FROM workers ORDER BY id DESC`); } catch (error) { res.json([]); }
 });
 
 app.post('/api/workers', async (req, res) => {
@@ -121,9 +118,7 @@ app.post('/api/workers', async (req, res) => {
       ) RETURNING *
     `;
     res.json(newWorker[0]);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
 app.put('/api/workers/:id', async (req, res) => {
@@ -135,31 +130,21 @@ app.put('/api/workers/:id', async (req, res) => {
           region=${region || ''}, city=${city || ''}, profession=${profession || ''}, 
           portfolio_img=${portfolio_img || ''}, safety_details=${safety_details || ''},
           rating=${rating || 5.0}, is_busy=${is_busy}, modified_by=${modified_by || 'نظام'}
-      WHERE id=${Number(req.params.id)} 
-      RETURNING *
+      WHERE id=${Number(req.params.id)} RETURNING *
     `;
     res.json(updatedWorker[0]);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
 app.delete('/api/workers/:id', async (req, res) => {
-  try {
-    await sql`DELETE FROM workers WHERE id = ${Number(req.params.id)}`;
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  try { await sql`DELETE FROM workers WHERE id = ${Number(req.params.id)}`; res.json({ success: true }); } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
 app.put('/api/workers/:id/click', async (req, res) => {
   try {
     const updated = await sql`UPDATE workers SET contact_clicks = COALESCE(contact_clicks, 0) + 1 WHERE id=${Number(req.params.id)} RETURNING *`;
     res.json(updated[0]);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
 // ==================================================================
@@ -201,9 +186,7 @@ app.post('/api/products', async (req, res) => {
       ) RETURNING *
     `;
     res.json(r[0]);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
 app.put('/api/products/:id', async (req, res) => {
@@ -214,13 +197,10 @@ app.put('/api/products/:id', async (req, res) => {
       SET name=${name}, price=${price}, old_price=${old_price || 0}, stock=${stock}, sold=${sold}, 
           details=${details || ''}, category=${category}, image=${image || ''}, is_sale=${is_sale}, 
           out_of_stock=${out_of_stock}, modified_by=${modified_by || 'نظام'}
-      WHERE id=${Number(req.params.id)} 
-      RETURNING *
+      WHERE id=${Number(req.params.id)} RETURNING *
     `;
     res.json(r[0]);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
 app.delete('/api/products/:id', async (req, res) => {
@@ -233,8 +213,6 @@ app.delete('/api/products/:id', async (req, res) => {
 app.post('/api/pos/checkout', async (req, res) => {
   try {
     const { cart, modified_by } = req.body;
-    
-    // المرور على كل منتج في السلة وخصم الكمية
     for (let i = 0; i < cart.length; i++) {
       const item = cart[i];
       await sql`
@@ -246,10 +224,8 @@ app.post('/api/pos/checkout', async (req, res) => {
         WHERE id = ${item.id}
       `;
     }
-    
     res.json({ success: true, message: 'تم اعتماد السلة بنجاح' });
   } catch (error) {
-    console.error("Checkout Error:", error);
     res.status(500).json({ error: error.message });
   }
 });
