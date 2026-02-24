@@ -263,6 +263,26 @@ app.post('/api/pos/refund', async (req, res) => {
     res.json({ success: true, message: 'تم إرجاع البضاعة للمخزون بنجاح' });
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
+// ==================================================================
+// 📥 مسار استقبال الطلبات الجديدة من سلة المشتريات للعميل
+// ==================================================================
+app.post('/api/orders', async (req, res) => {
+  const { customer_name, customer_phone, cart_data, total } = req.body;
 
+  try {
+    // إدخال بيانات الطلب باستخدام مكتبة postgres (sql) الخاصة بك
+    const newOrder = await sql`
+      INSERT INTO orders (customer_name, customer_phone, cart_data, total)
+      VALUES (${customer_name}, ${customer_phone}, ${cart_data}, ${total})
+      RETURNING *
+    `;
+    
+    // إرسال رد بنجاح العملية لتظهر رسالة الشكر المنبثقة للعميل
+    res.status(201).json(newOrder[0]);
+  } catch (error) {
+    console.error("خطأ أثناء حفظ الطلب:", error);
+    res.status(500).json({ error: 'حدث خطأ أثناء إرسال الطلب' });
+  }
+});
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server Running with Advanced Return & Cashier System on port ${PORT}`));
