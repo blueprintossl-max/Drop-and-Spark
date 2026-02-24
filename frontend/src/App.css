@@ -99,9 +99,15 @@ button { font-family: inherit; cursor: pointer; }
 .profit-td { color: var(--gold) !important; }
 .mod-td { font-size: 0.9rem; color: #7f8c8d !important; }
 
-.btn-minus, .btn-plus { border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; margin-left: 5px; color: white; }
-.btn-minus { background: #e74c3c; } 
-.btn-plus { background: #2ecc71; }
+/* 🌟 تصميم الجرد المجمع الجديد */
+.bulk-action-wrapper { display: flex; flex-direction: column; gap: 8px; width: 160px; }
+.bulk-input { width: 100%; padding: 8px; border: 2px solid var(--gold); border-radius: 6px; text-align: center; font-weight: bold; font-size: 1rem; }
+.bulk-buttons { display: flex; gap: 5px; }
+.btn-minus-bulk, .btn-plus-bulk { flex: 1; border: none; padding: 8px 5px; border-radius: 6px; font-weight: bold; color: white; font-size: 0.85rem; cursor: pointer; transition: 0.2s; }
+.btn-minus-bulk { background: var(--red); }
+.btn-minus-bulk:hover { background: #c0392b; }
+.btn-plus-bulk { background: var(--green); }
+.btn-plus-bulk:hover { background: #219653; }
 
 .reports-split-container { display: flex; flex-direction: column; gap: 40px; }
 .report-main-section { background: #fdfdfd; border: 2px solid var(--gold); border-radius: 15px; padding: 20px; }
@@ -157,8 +163,6 @@ button { font-family: inherit; cursor: pointer; }
 .workers-list-client { padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
 .worker-client-card { display: flex; gap: 15px; background: white; padding: 15px; border-radius: 15px; border: 1px solid #eee; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.03); align-items: flex-start; }
 .worker-client-card img { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid var(--gold); }
-.wc-info { flex: 1; }
-.wc-info h3 { margin: 0 0 5px 0; color: var(--navy); }
 .empty-msg { text-align: center; padding: 40px; color: #888; font-weight: bold; font-size: 1.1rem; }
 
 .royal-header { background: var(--navy); padding: 15px 5%; display: flex; justify-content: space-between; align-items: center; border-bottom: 4px solid var(--gold); position: sticky; top: 0; z-index: 1000; }
@@ -244,7 +248,6 @@ button { font-family: inherit; cursor: pointer; }
 .cart-buttons-row { display: flex; gap: 8px; }
 .btn-continue-shopping { background: white; border: 2px solid var(--navy); color: var(--navy); padding: 12px; border-radius: 10px; font-weight: bold; width: 100%; }
 .btn-wa-confirm { background: var(--green) !important; color: white !important; padding: 12px; border-radius: 10px; font-weight: bold; border: none; width: 100%; font-size: 1.1rem; }
-.toast-notification { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--navy); padding: 10px 30px; border-radius: 50px; font-weight: 900; z-index: 5000; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5); }
 
 @media (max-width: 800px) {
   .desktop-only { display: none; }
