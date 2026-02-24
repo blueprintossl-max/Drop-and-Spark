@@ -25,22 +25,22 @@ function App() {
   const [loginUsername, setLoginUsername] = useState('');
   const [loginPin, setLoginPin] = useState('');
   
-  // تغيير الرقم السري
   const [newPasswordInput, setNewPasswordInput] = useState('');
 
-  // 🔒 جدار الحماية: هل المستخدم مدير؟
+  // 🔒 جدار الحماية
   const isManager = currentUser && currentUser.role && currentUser.role.trim() === 'مدير';
 
   // =========================================================================
-  // 3. حالات شاشة الإدارة
+  // 3. حالات شاشة الإدارة 
   // =========================================================================
-  const [adminView, setAdminView] = useState('inventory'); // inventory, categories, workers, reports, users, settings, profile
+  const [adminView, setAdminView] = useState('pos'); // pos, inventory, categories, workers, reports, users, settings, profile
   
   const [activeMainCat, setActiveMainCat] = useState(null);
   const [activeSubCat, setActiveSubCat] = useState(null);
   const [newMainName, setNewMainName] = useState('');
   const [newSubName, setNewSubName] = useState('');
   
+  // المخزون الهرمي
   const [invMainCat, setInvMainCat] = useState(null);
   const [invSubCat, setInvSubCat] = useState(null);
   const [invBulkInputs, setInvBulkInputs] = useState({});
@@ -52,6 +52,11 @@ function App() {
   const [editingWorker, setEditingWorker] = useState(null);
   
   const [newAdminForm, setNewAdminForm] = useState({ username: '', pin: '', role: 'موظف' });
+
+  // 🛒 حالات نقطة البيع (الكاشير) للإدارة
+  const [adminCart, setAdminCart] = useState([]);
+  const [vipDiscount, setVipDiscount] = useState('');
+  const [posSearch, setPosSearch] = useState('');
 
   // =========================================================================
   // 4. حالات واجهة العميل
@@ -95,48 +100,91 @@ function App() {
     } catch (error) { console.error("Data Fetch Error:", error); }
   };
 
-  // 🌟 نظام الدخول اليدوي الآمن 🌟
+  // 🌟 نظام الدخول اليدوي
   const handleLogin = () => {
     if (!loginUsername || !loginPin) {
       setAlert("⚠️ يرجى إدخال اسم المستخدم والرمز السري");
       return;
     }
-    
-    // البحث بالاسم المكتوب يدوياً
     const user = admins.find(a => a.username.trim() === loginUsername.trim() && a.pin === loginPin);
-    
     if (user) { 
       setCurrentUser(user); 
       setIsAuthenticated(true); 
-      setAdminView('inventory'); 
+      setAdminView('pos'); // توجيه الموظف مباشرة لشاشة الكاشير
       setAlert(`✅ أهلاً بك يا ${user.username}`); 
     } else { 
       setAlert("❌ بيانات الدخول غير صحيحة"); 
     }
   };
 
-  // 🌟 تغيير الرقم السري للموظف 🌟
   const handleChangeMyPassword = async () => {
-    if (!newPasswordInput) {
-      return setAlert("⚠️ يرجى إدخال الرمز السري الجديد");
-    }
-
+    if (!newPasswordInput) return setAlert("⚠️ يرجى إدخال الرمز السري الجديد");
     try {
       const res = await fetch(`${API_URL}/admins/${currentUser.id}/pin`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ newPin: newPasswordInput })
       });
-
       if (res.ok) {
         const updatedUser = await res.json();
-        setCurrentUser(updatedUser); // تحديث بيانات الجلسة الحالية
+        setCurrentUser(updatedUser); 
         setAlert("✅ تم تغيير الرمز السري بنجاح!");
         setNewPasswordInput('');
         fetchAllData();
       }
+    } catch (error) { setAlert("❌ حدث خطأ"); }
+  };
+
+  // 🌟 نظام الكاشير واعتماد السلة
+  const addToAdminCart = (product) => {
+    if (product.stock <= 0) return setAlert("❌ هذا المنتج غير متوفر في المستودع");
+    
+    const existingIndex = adminCart.findIndex(item => item.id === product.id);
+    if (existingIndex >= 0) { 
+      const newCart = [...adminCart];
+      if (newCart[existingIndex].qty >= product.stock) {
+         return setAlert("❌ لا يوجد كمية إضافية في المستودع");
+      }
+      newCart[existingIndex].qty += 1; 
+      setAdminCart(newCart); 
+    } else { 
+      setAdminCart([...adminCart, { ...product, qty: 1 }]); 
+    }
+  };
+
+  const updateAdminCartQty = (index, change) => {
+    const newCart = [...adminCart]; 
+    const item = newCart[index];
+    
+    if (change > 0 && item.qty >= item.stock) {
+       return setAlert("❌ الكمية المطلوبة تتجاوز المخزون");
+    }
+    
+    item.qty += change; 
+    if (item.qty <= 0) newCart.splice(index, 1); 
+    setAdminCart(newCart); 
+  };
+
+  const handleCheckoutPOS = async () => {
+    if (adminCart.length === 0) return setAlert("⚠️ السلة فارغة");
+    
+    try {
+      const res = await fetch(`${API_URL}/pos/checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          cart: adminCart, 
+          modified_by: currentUser.username 
+        })
+      });
+      
+      if (res.ok) {
+        setAlert("✅ تم اعتماد الطلب، وخصم المخزون بنجاح!");
+        setAdminCart([]); // تفريغ السلة بعد البيع
+        setVipDiscount('');
+        fetchAllData(); // تحديث الأرقام
+      }
     } catch (error) {
-      setAlert("❌ حدث خطأ أثناء تغيير الرمز");
+      setAlert("❌ حدث خطأ أثناء اعتماد الطلب");
     }
   };
 
@@ -149,9 +197,7 @@ function App() {
     } catch (e) { console.error(e); }
   };
 
-  const handleDeleteAdmin = async (id) => {
-    if (window.confirm("حذف الموظف نهائياً؟")) { await fetch(`${API_URL}/admins/${id}`, { method: 'DELETE' }); setAlert("🗑️ تم الحذف"); fetchAllData(); }
-  };
+  const handleDeleteAdmin = async (id) => { if (window.confirm("حذف الموظف نهائياً؟")) { await fetch(`${API_URL}/admins/${id}`, { method: 'DELETE' }); setAlert("🗑️ تم الحذف"); fetchAllData(); } };
 
   const handleSaveProduct = async () => {
     if (!formData.name) return setAlert("⚠️ يرجى إدخال اسم المنتج");
@@ -162,6 +208,7 @@ function App() {
     setAlert("✅ تم حفظ المنتج"); setEditingItem(null); setFormData({ name: '', price: '', old_price: '', stock: '', details: '', image: '', is_sale: false, out_of_stock: false }); fetchAllData();
   };
 
+  // نظام الجرد المجمع اليدوي (باقي كما طلبته للحالات الفردية)
   const handleBulkInventoryUpdate = async (product, isAdding) => {
     const qtyInput = invBulkInputs[product.id];
     const amount = Number(qtyInput);
@@ -221,6 +268,7 @@ function App() {
     };
   };
 
+  // دوال سلة العميل في المتجر
   const addToCart = (product, qty = 1) => {
     const customQty = itemQtys[product.id] || qty;
     const existingIndex = cart.findIndex(item => item.id === product.id);
@@ -247,25 +295,8 @@ function App() {
           <div className="login-box glass-effect">
             <h1 className="gradient-text-large">نظام الإدارة المركزية</h1>
             <p className="sub-login">يرجى كتابة بيانات الدخول الخاصة بك</p>
-            
-            {/* تم إلغاء القائمة المنسدلة، واستبدالها بإدخال يدوي سري */}
-            <input 
-              className="login-input" 
-              type="text" 
-              placeholder="اسم المستخدم..." 
-              value={loginUsername} 
-              onChange={e => setLoginUsername(e.target.value)} 
-            />
-            
-            <input 
-              className="login-input" 
-              type="password" 
-              placeholder="الرمز السري..." 
-              value={loginPin} 
-              onChange={e => setLoginPin(e.target.value)} 
-              onKeyDown={(e) => { if(e.key === 'Enter') handleLogin(); }}
-            />
-            
+            <input className="login-input" type="text" placeholder="اسم المستخدم..." value={loginUsername} onChange={e => setLoginUsername(e.target.value)} />
+            <input className="login-input" type="password" placeholder="الرمز السري..." value={loginPin} onChange={e => setLoginPin(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter') handleLogin(); }}/>
             <button onClick={handleLogin}>تسجيل الدخول الآمن 🗝️</button>
             <a href="/" className="login-back-link">العودة للواجهة الرئيسية 🏠</a>
           </div>
@@ -281,11 +312,12 @@ function App() {
           <div className="side-logo">⚙️ الإدارة<div className="user-badge">👤 {currentUser.username} | {currentUser.role}</div></div>
           
           <nav className="side-nav">
+            <button className={adminView === 'pos' ? 'active' : ''} onClick={() => setAdminView('pos')} style={{background: adminView === 'pos' ? 'var(--gold)' : '#2ecc71', color: adminView === 'pos' ? 'var(--navy)' : 'white', marginBottom:'15px', border:'2px solid var(--gold)'}}>🛒 نقطة البيع (كاشير)</button>
             <button className={adminView === 'inventory' ? 'active' : ''} onClick={() => {setAdminView('inventory'); setInvMainCat(null); setInvSubCat(null);}}>📦 المخزون الهرمي</button>
             <button className={adminView === 'categories' ? 'active' : ''} onClick={() => {setAdminView('categories'); setActiveMainCat(null); setActiveSubCat(null); setEditingItem(null);}}>🗂️ المنتجات والأقسام</button>
             <button className={adminView === 'workers' ? 'active' : ''} onClick={() => setAdminView('workers')}>👷‍♂️ حراج العمال</button>
             
-            {/* جدار الحماية (مدير فقط) */}
+            {/* جدار الحماية */}
             {isManager && (
               <>
                 <button className={adminView === 'reports' ? 'active' : ''} onClick={() => setAdminView('reports')}>📊 التقارير والأرباح</button>
@@ -294,7 +326,6 @@ function App() {
               </>
             )}
             
-            {/* حسابي (متاح للجميع لتغيير الرمز) */}
             <button className={adminView === 'profile' ? 'active' : ''} onClick={() => setAdminView('profile')} style={{marginTop: '20px', borderTop: '1px solid rgba(255,255,255,0.1)', borderRadius: '0'}}>👤 حسابي (تغيير الرمز)</button>
           </nav>
           
@@ -302,8 +333,8 @@ function App() {
         </aside>
 
         <main className="content-70">
-          {/* لوحة الإحصائيات (تظهر للمدير فقط) */}
-          {isManager && (
+          {/* لوحة الإحصائيات (للمدير فقط) */}
+          {isManager && adminView !== 'pos' && (
             <div className="admin-top-dashboard">
               <div className="dash-card"><h4>المنتجات المسجلة</h4><h2>{totalSystemProducts}</h2></div>
               <div className="dash-card"><h4>العمال والمقاولين</h4><h2>{totalSystemWorkers}</h2></div>
@@ -311,34 +342,103 @@ function App() {
             </div>
           )}
 
-          {/* ==================== 0. حساب الموظف (تغيير الرقم السري) ==================== */}
+          {/* ==================== 0. نظام الكاشير (نقطة البيع السريعة) ==================== */}
+          {adminView === 'pos' && (
+            <div className="pos-container fade-in">
+              
+              {/* قسم المنتجات (يمين) */}
+              <div className="pos-products-section">
+                <input 
+                  type="text" 
+                  className="pos-search" 
+                  placeholder="🔍 ابحث عن منتج لإضافته للسلة..." 
+                  value={posSearch} 
+                  onChange={e => setPosSearch(e.target.value)}
+                />
+                
+                <div className="pos-grid">
+                  {products.filter(p => p.name.includes(posSearch)).slice(0, 20).map(product => (
+                    <div key={product.id} className="pos-card" onClick={() => addToAdminCart(product)}>
+                      {product.stock <= 0 && <div className="pos-out">نفدت الكمية</div>}
+                      <img src={product.image || 'https://via.placeholder.com/100'} alt=""/>
+                      <h5>{product.name}</h5>
+                      <span className="pos-price">{product.price} ر.س</span>
+                      <span className="pos-stock">المتوفر: {product.stock}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              {/* قسم الفاتورة (يسار) */}
+              <div className="pos-cart-section">
+                <h3>سلة المبيعات (الكاشير)</h3>
+                
+                <div className="pos-cart-items">
+                  {adminCart.length === 0 && <div className="pos-empty">السلة فارغة حالياً</div>}
+                  {adminCart.map((item, index) => (
+                    <div key={index} className="pos-cart-row">
+                      <div className="pos-cart-info">
+                        <b>{item.name}</b>
+                        <span>{item.price} ر.س</span>
+                      </div>
+                      <div className="pos-qty-controls">
+                        <button onClick={() => updateAdminCartQty(index, 1)}>+</button>
+                        <span>{item.qty}</span>
+                        <button onClick={() => updateAdminCartQty(index, -1)}>-</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="pos-checkout-area">
+                  <div className="vip-discount-box">
+                    <label>🎁 خصم عميل مميز (%):</label>
+                    <input 
+                      type="number" 
+                      placeholder="مثال: 10" 
+                      value={vipDiscount} 
+                      onChange={e => setVipDiscount(e.target.value)} 
+                      min="0" max="100"
+                    />
+                  </div>
+                  
+                  <div className="pos-totals">
+                    {(() => {
+                      const subtotal = adminCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+                      const discountValue = vipDiscount ? (subtotal * (Number(vipDiscount) / 100)) : 0;
+                      const finalTotal = subtotal - discountValue;
+                      return (
+                        <>
+                          <div className="p-row"><span>المجموع:</span> <span>{subtotal} ر.س</span></div>
+                          {vipDiscount && <div className="p-row discount"><span>الخصم:</span> <span>- {discountValue.toFixed(2)} ر.س</span></div>}
+                          <div className="p-row final"><span>الإجمالي النهائي:</span> <span>{finalTotal.toFixed(2)} ر.س</span></div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                  
+                  <button className="pos-checkout-btn" onClick={handleCheckoutPOS}>
+                    اعتماد الطلب وخصم المخزون ✅
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ==================== إعدادات الحساب ==================== */}
           {adminView === 'profile' && (
             <div className="panel-card fade-in">
               <h2>👤 إعدادات حسابي</h2>
               <div className="settings-grid">
-                <div className="form-group">
-                  <label>اسم المستخدم الحالي</label>
-                  <input value={currentUser.username} disabled style={{background: '#eee', color: '#888'}} />
-                </div>
-                <div className="form-group">
-                  <label>صلاحيات الحساب</label>
-                  <input value={currentUser.role} disabled style={{background: '#eee', color: '#888'}} />
-                </div>
-                <div className="form-group">
-                  <label>تغيير الرمز السري الجديد 🔒</label>
-                  <input 
-                    type="password"
-                    placeholder="اكتب الرمز الجديد هنا..." 
-                    value={newPasswordInput} 
-                    onChange={e => setNewPasswordInput(e.target.value)} 
-                  />
-                </div>
+                <div className="form-group"><label>اسم المستخدم الحالي</label><input value={currentUser.username} disabled style={{background: '#eee', color: '#888'}} /></div>
+                <div className="form-group"><label>صلاحيات الحساب</label><input value={currentUser.role} disabled style={{background: '#eee', color: '#888'}} /></div>
+                <div className="form-group"><label>تغيير الرمز السري الجديد 🔒</label><input type="password" placeholder="اكتب الرمز الجديد هنا..." value={newPasswordInput} onChange={e => setNewPasswordInput(e.target.value)} /></div>
               </div>
               <button className="save-btn full-w-btn" onClick={handleChangeMyPassword}>حفظ الرمز السري الجديد 💾</button>
             </div>
           )}
 
-          {/* ==================== 1. المخزون ==================== */}
+          {/* ==================== 1. المخزون (الجرد اليدوي) ==================== */}
           {adminView === 'inventory' && (
             <div className="fade-in">
               {!invMainCat ? (
@@ -349,45 +449,21 @@ function App() {
                 <div className="panel-card">
                   <button className="back-btn" onClick={() => setInvSubCat(null)}>🔙 رجوع</button>
                   <div className="path-header">مستودع: {invMainCat.name} ⬅️ {invSubCat.name}</div>
-                  
-                  <div style={{background:'#fff3cd', padding:'15px', borderRadius:'10px', marginBottom:'20px', color:'#856404', fontWeight:'bold', borderLeft:'5px solid #f1c40f'}}>
-                    💡 طريقة الجرد: اكتب الكمية المطلوبة في المربع الأبيض أولاً، ثم اضغط (إضافة للمستودع) أو (تسجيل مبيعات).
-                  </div>
+                  <div style={{background:'#fff3cd', padding:'15px', borderRadius:'10px', marginBottom:'20px', color:'#856404', fontWeight:'bold', borderLeft:'5px solid #f1c40f'}}>💡 طريقة الجرد الفردي: اكتب الكمية المطلوبة في المربع الأبيض، ثم اضغط (إضافة للمستودع) أو (تسجيل مبيعات). وللطلبات الكبيرة استخدم شاشة (الكاشير).</div>
 
                   <table className="pro-table">
-                    <thead>
-                      <tr>
-                        <th>المنتج</th>
-                        <th>بالمستودع</th>
-                        <th>تم بيعه</th>
-                        <th>إجراءات الجرد</th>
-                        <th>آخر تحديث</th>
-                      </tr>
-                    </thead>
+                    <thead><tr><th>المنتج</th><th>بالمستودع</th><th>تم بيعه</th><th>إجراءات الجرد اليدوي</th><th>آخر تحديث</th></tr></thead>
                     <tbody>
                       {products.filter(p => p.category === invSubCat.name).length === 0 && (<tr><td colSpan="5" style={{textAlign:'center'}}>المستودع فارغ</td></tr>)}
                       {products.filter(p => p.category === invSubCat.name).map(product => (
                         <tr key={product.id}>
-                          <td>{product.name}</td>
-                          <td className="stk-td">{product.stock}</td>
-                          <td className="sld-td">{product.sold || 0}</td>
-                          
+                          <td>{product.name}</td><td className="stk-td">{product.stock}</td><td className="sld-td">{product.sold || 0}</td>
                           <td className="act-td">
                             <div className="bulk-action-wrapper">
-                              <input 
-                                type="number" 
-                                className="bulk-input" 
-                                placeholder="الكمية هنا..." 
-                                value={invBulkInputs[product.id] || ''}
-                                onChange={(e) => setInvBulkInputs({...invBulkInputs, [product.id]: e.target.value})}
-                              />
-                              <div className="bulk-buttons">
-                                <button className="btn-minus-bulk" onClick={() => handleBulkInventoryUpdate(product, false)}>تسجيل مبيعات</button>
-                                <button className="btn-plus-bulk" onClick={() => handleBulkInventoryUpdate(product, true)}>إضافة للمستودع</button>
-                              </div>
+                              <input type="number" className="bulk-input" placeholder="الكمية هنا..." value={invBulkInputs[product.id] || ''} onChange={(e) => setInvBulkInputs({...invBulkInputs, [product.id]: e.target.value})}/>
+                              <div className="bulk-buttons"><button className="btn-minus-bulk" onClick={() => handleBulkInventoryUpdate(product, false)}>تسجيل بيع</button><button className="btn-plus-bulk" onClick={() => handleBulkInventoryUpdate(product, true)}>إضافة للمستودع</button></div>
                             </div>
                           </td>
-                          
                           <td className="mod-td">👤 {product.modified_by}</td>
                         </tr>
                       ))}
@@ -488,7 +564,7 @@ function App() {
               <div className="add-row mb-20" style={{background:'#f9f9f9', padding:'20px', borderRadius:'10px'}}>
                 <input placeholder="اسم الموظف..." value={newAdminForm.username} onChange={e => setNewAdminForm({...newAdminForm, username: e.target.value})}/>
                 <input placeholder="الرمز السري..." type="password" value={newAdminForm.pin} onChange={e => setNewAdminForm({...newAdminForm, pin: e.target.value})}/>
-                <select value={newAdminForm.role} onChange={e => setNewAdminForm({...newAdminForm, role: e.target.value})} style={{padding:'12px', borderRadius:'8px'}}><option value="موظف">موظف (مخزون ومنتجات)</option><option value="مدير">مدير (كافة الصلاحيات)</option></select>
+                <select value={newAdminForm.role} onChange={e => setNewAdminForm({...newAdminForm, role: e.target.value})} style={{padding:'12px', borderRadius:'8px'}}><option value="موظف">موظف (مخزون ومنتجات وكاشير)</option><option value="مدير">مدير (كافة الصلاحيات)</option></select>
                 <button className="add-btn" onClick={handleAddAdmin}>إضافة موظف</button>
               </div>
               <table className="pro-table"><thead><tr><th>اسم الموظف</th><th>الصلاحية</th><th>الرمز السري</th><th>إجراء</th></tr></thead>
@@ -509,7 +585,7 @@ function App() {
   }
 
   // =========================================================================
-  // 💻 واجهة العميل (المتجر)
+  // 💻 واجهة العميل (المتجر العام)
   // =========================================================================
   let processedProducts = products;
   if (searchQuery) { processedProducts = processedProducts.filter(p => p.name.includes(searchQuery)); } 
@@ -579,6 +655,7 @@ function App() {
       <button className="floating-wa-btn" onClick={() => window.open(`https://wa.me/${settings.phone}`)}>💬</button>
       {cart.length > 0 && (<div className="mobile-sticky-cart" onClick={() => setShowCart(true)}><div className="m-cart-info">🛒 في السلة: <b>{cart.length}</b></div><div className="m-cart-total">{cart.reduce((sum, item) => sum + (item.price * item.qty), 0)} ر.س</div></div>)}
 
+      {/* المودال ونوافذ العمال (نفس الكود السابق تماما) */}
       {showWorkersHaraj && (
         <div className="product-modal-overlay" onClick={() => setShowWorkersHaraj(false)}>
           <div className="worker-haraj-modal fade-in-up" onClick={e => e.stopPropagation()}>

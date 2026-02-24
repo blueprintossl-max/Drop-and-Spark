@@ -50,7 +50,7 @@ app.delete('/api/admins/:id', async (req, res) => {
   }
 });
 
-// 🌟 مسار جديد: لتغيير الرقم السري للموظف نفسه
+// تغيير الرقم السري للموظف
 app.put('/api/admins/:id/pin', async (req, res) => {
   try {
     const { newPin } = req.body;
@@ -225,6 +225,33 @@ app.put('/api/products/:id', async (req, res) => {
 
 app.delete('/api/products/:id', async (req, res) => {
   try { await sql`DELETE FROM products WHERE id = ${Number(req.params.id)}`; res.json({ success: true }); } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+// ==================================================================
+// 🛒 6. نظام الكاشير (معالجة السلة كاملة دفعة واحدة)
+// ==================================================================
+app.post('/api/pos/checkout', async (req, res) => {
+  try {
+    const { cart, modified_by } = req.body;
+    
+    // المرور على كل منتج في السلة وخصم الكمية
+    for (let i = 0; i < cart.length; i++) {
+      const item = cart[i];
+      await sql`
+        UPDATE products 
+        SET 
+          stock = GREATEST(stock - ${item.qty}, 0), 
+          sold = COALESCE(sold, 0) + ${item.qty},
+          modified_by = ${modified_by || 'نظام الكاشير'}
+        WHERE id = ${item.id}
+      `;
+    }
+    
+    res.json({ success: true, message: 'تم اعتماد السلة بنجاح' });
+  } catch (error) {
+    console.error("Checkout Error:", error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 const PORT = process.env.PORT || 5000;
