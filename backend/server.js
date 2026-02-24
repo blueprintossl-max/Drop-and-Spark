@@ -10,6 +10,27 @@ app.use(express.json({ limit: '50mb' }));
 const sql = postgres(process.env.DATABASE_URL, { ssl: 'require' });
 
 // ==================================================================
+// 🛠️ تهيئة قاعدة البيانات تلقائياً (إنشاء جدول الطلبات إذا لم يكن موجوداً)
+// ==================================================================
+async function initDb() {
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS orders (
+        id SERIAL PRIMARY KEY,
+        cart_data JSONB NOT NULL,
+        total NUMERIC NOT NULL,
+        status VARCHAR(50) DEFAULT 'معلق',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+    console.log("✅ تأكيد جاهزية جداول الطلبات");
+  } catch (err) {
+    console.error("خطأ في تهيئة قاعدة البيانات:", err);
+  }
+}
+initDb();
+
+// ==================================================================
 // 1. نظام الموظفين والصلاحيات
 // ==================================================================
 app.get('/api/admins', async (req, res) => {
@@ -38,23 +59,16 @@ app.post('/api/admins', async (req, res) => {
   }
 });
 
-// 🌟 مسار جديد: تعديل بيانات الموظف كاملة (الاسم، الرقم، الصلاحية) من لوحة المدير
 app.put('/api/admins/:id', async (req, res) => {
   try {
     const { username, pin, role } = req.body;
     const adminId = Number(req.params.id);
     
-    // التأكد أن الاسم الجديد غير مستخدم من قبل موظف آخر
     const existing = await sql`SELECT * FROM admins WHERE username = ${username} AND id != ${adminId}`;
-    if (existing.length > 0) {
-      return res.status(400).json({ error: 'اسم المستخدم موجود مسبقاً' });
-    }
+    if (existing.length > 0) return res.status(400).json({ error: 'اسم المستخدم موجود مسبقاً' });
     
     const updatedAdmin = await sql`
-      UPDATE admins 
-      SET username = ${username}, pin = ${pin}, role = ${role}
-      WHERE id = ${adminId} 
-      RETURNING *
+      UPDATE admins SET username = ${username}, pin = ${pin}, role = ${role} WHERE id = ${adminId} RETURNING *
     `;
     res.json(updatedAdmin[0]);
   } catch (error) {
@@ -71,7 +85,6 @@ app.delete('/api/admins/:id', async (req, res) => {
   }
 });
 
-// مسار تغيير الرقم السري للموظف من صفحة حسابه
 app.put('/api/admins/:id/pin', async (req, res) => {
   try {
     const { newPin } = req.body;
@@ -109,13 +122,8 @@ app.post('/api/workers', async (req, res) => {
   try {
     const { name, phone, details, image, region, city, profession, portfolio_img, safety_details, rating, is_busy, modified_by } = req.body;
     const newWorker = await sql`
-      INSERT INTO workers (
-        name, phone, details, image, region, city, hidden, profession, 
-        portfolio_img, safety_details, contact_clicks, rating, is_busy, modified_by
-      ) VALUES (
-        ${name}, ${phone}, ${details || ''}, ${image || ''}, ${region || ''}, ${city || ''}, FALSE, ${profession || ''}, 
-        ${portfolio_img || ''}, ${safety_details || ''}, 0, ${rating || 5.0}, ${is_busy || false}, ${modified_by || 'نظام'}
-      ) RETURNING *
+      INSERT INTO workers (name, phone, details, image, region, city, hidden, profession, portfolio_img, safety_details, contact_clicks, rating, is_busy, modified_by) 
+      VALUES (${name}, ${phone}, ${details || ''}, ${image || ''}, ${region || ''}, ${city || ''}, FALSE, ${profession || ''}, ${portfolio_img || ''}, ${safety_details || ''}, 0, ${rating || 5.0}, ${is_busy || false}, ${modified_by || 'نظام'}) RETURNING *
     `;
     res.json(newWorker[0]);
   } catch (error) { res.status(500).json({ error: error.message }); }
@@ -125,11 +133,7 @@ app.put('/api/workers/:id', async (req, res) => {
   try {
     const { name, phone, details, image, hidden, region, city, profession, portfolio_img, safety_details, rating, is_busy, modified_by } = req.body;
     const updatedWorker = await sql`
-      UPDATE workers 
-      SET name=${name}, phone=${phone}, details=${details || ''}, image=${image || ''}, hidden=${hidden}, 
-          region=${region || ''}, city=${city || ''}, profession=${profession || ''}, 
-          portfolio_img=${portfolio_img || ''}, safety_details=${safety_details || ''},
-          rating=${rating || 5.0}, is_busy=${is_busy}, modified_by=${modified_by || 'نظام'}
+      UPDATE workers SET name=${name}, phone=${phone}, details=${details || ''}, image=${image || ''}, hidden=${hidden}, region=${region || ''}, city=${city || ''}, profession=${profession || ''}, portfolio_img=${portfolio_img || ''}, safety_details=${safety_details || ''}, rating=${rating || 5.0}, is_busy=${is_busy}, modified_by=${modified_by || 'نظام'}
       WHERE id=${Number(req.params.id)} RETURNING *
     `;
     res.json(updatedWorker[0]);
@@ -141,10 +145,7 @@ app.delete('/api/workers/:id', async (req, res) => {
 });
 
 app.put('/api/workers/:id/click', async (req, res) => {
-  try {
-    const updated = await sql`UPDATE workers SET contact_clicks = COALESCE(contact_clicks, 0) + 1 WHERE id=${Number(req.params.id)} RETURNING *`;
-    res.json(updated[0]);
-  } catch (error) { res.status(500).json({ error: error.message }); }
+  try { const updated = await sql`UPDATE workers SET contact_clicks = COALESCE(contact_clicks, 0) + 1 WHERE id=${Number(req.params.id)} RETURNING *`; res.json(updated[0]); } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
 // ==================================================================
@@ -179,11 +180,8 @@ app.post('/api/products', async (req, res) => {
   try {
     const { name, price, old_price, stock, details, category, image, is_sale, out_of_stock, modified_by } = req.body;
     const r = await sql`
-      INSERT INTO products (
-        name, price, old_price, stock, sold, details, category, image, is_sale, out_of_stock, modified_by
-      ) VALUES (
-        ${name}, ${price}, ${old_price || 0}, ${stock}, 0, ${details || ''}, ${category}, ${image || ''}, ${is_sale}, ${out_of_stock}, ${modified_by || 'نظام'}
-      ) RETURNING *
+      INSERT INTO products (name, price, old_price, stock, sold, details, category, image, is_sale, out_of_stock, modified_by) 
+      VALUES (${name}, ${price}, ${old_price || 0}, ${stock}, 0, ${details || ''}, ${category}, ${image || ''}, ${is_sale}, ${out_of_stock}, ${modified_by || 'نظام'}) RETURNING *
     `;
     res.json(r[0]);
   } catch (error) { res.status(500).json({ error: error.message }); }
@@ -193,10 +191,7 @@ app.put('/api/products/:id', async (req, res) => {
   try {
     const { name, price, old_price, stock, sold, details, category, image, is_sale, out_of_stock, modified_by } = req.body;
     const r = await sql`
-      UPDATE products 
-      SET name=${name}, price=${price}, old_price=${old_price || 0}, stock=${stock}, sold=${sold}, 
-          details=${details || ''}, category=${category}, image=${image || ''}, is_sale=${is_sale}, 
-          out_of_stock=${out_of_stock}, modified_by=${modified_by || 'نظام'}
+      UPDATE products SET name=${name}, price=${price}, old_price=${old_price || 0}, stock=${stock}, sold=${sold}, details=${details || ''}, category=${category}, image=${image || ''}, is_sale=${is_sale}, out_of_stock=${out_of_stock}, modified_by=${modified_by || 'نظام'}
       WHERE id=${Number(req.params.id)} RETURNING *
     `;
     res.json(r[0]);
@@ -208,7 +203,55 @@ app.delete('/api/products/:id', async (req, res) => {
 });
 
 // ==================================================================
-// 🛒 6. نظام الكاشير (معالجة السلة كاملة دفعة واحدة)
+// 📦 6. نظام الطلبات المعلقة (من المتجر للإدارة)
+// ==================================================================
+app.get('/api/orders', async (req, res) => {
+  try {
+    const ordersList = await sql`SELECT * FROM orders ORDER BY id DESC`;
+    res.json(ordersList);
+  } catch (error) {
+    res.json([]);
+  }
+});
+
+app.post('/api/orders', async (req, res) => {
+  try {
+    const { cart_data, total } = req.body;
+    const newOrder = await sql`
+      INSERT INTO orders (cart_data, total, status) 
+      VALUES (${cart_data}, ${total}, 'معلق') 
+      RETURNING *
+    `;
+    res.json(newOrder[0]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/orders/:id/complete', async (req, res) => {
+  try {
+    const orderId = Number(req.params.id);
+    const updatedOrder = await sql`
+      UPDATE orders SET status = 'مكتمل' WHERE id = ${orderId} RETURNING *
+    `;
+    res.json(updatedOrder[0]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/orders/:id', async (req, res) => {
+  try {
+    const orderId = Number(req.params.id);
+    await sql`DELETE FROM orders WHERE id = ${orderId}`;
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================================================================
+// 🛒 7. نظام الكاشير (معالجة واعتماد السلة)
 // ==================================================================
 app.post('/api/pos/checkout', async (req, res) => {
   try {
@@ -217,10 +260,7 @@ app.post('/api/pos/checkout', async (req, res) => {
       const item = cart[i];
       await sql`
         UPDATE products 
-        SET 
-          stock = GREATEST(stock - ${item.qty}, 0), 
-          sold = COALESCE(sold, 0) + ${item.qty},
-          modified_by = ${modified_by || 'نظام الكاشير'}
+        SET stock = GREATEST(stock - ${item.qty}, 0), sold = COALESCE(sold, 0) + ${item.qty}, modified_by = ${modified_by || 'نظام الكاشير'}
         WHERE id = ${item.id}
       `;
     }
@@ -231,4 +271,4 @@ app.post('/api/pos/checkout', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server Running Securely on port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Server Running with Advanced POS & Orders System on port ${PORT}`));

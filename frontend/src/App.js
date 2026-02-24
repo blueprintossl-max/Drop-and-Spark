@@ -13,6 +13,7 @@ function App() {
   const [workers, setWorkers] = useState([]);
   const [settings, setSettings] = useState({ phone: '', email: '', shop_name: '' });
   const [admins, setAdmins] = useState([]); 
+  const [orders, setOrders] = useState([]); // 🌟 حالة الطلبات الواردة
   
   const [cart, setCart] = useState([]);
   const [alert, setAlert] = useState(null);
@@ -24,16 +25,18 @@ function App() {
   const [currentUser, setCurrentUser] = useState(null); 
   const [loginUsername, setLoginUsername] = useState('');
   const [loginPin, setLoginPin] = useState('');
-  
   const [newPasswordInput, setNewPasswordInput] = useState('');
 
   // 🔒 جدار الحماية
   const isManager = currentUser && currentUser.role && currentUser.role.trim() === 'مدير';
 
+  // 👁️ إخفاء وإظهار الرمز السري
+  const [showPin, setShowPin] = useState({});
+
   // =========================================================================
   // 3. حالات شاشة الإدارة 
   // =========================================================================
-  const [adminView, setAdminView] = useState('pos'); 
+  const [adminView, setAdminView] = useState('orders'); // orders, pos, inventory, categories, workers, reports, users, profile
   
   const [activeMainCat, setActiveMainCat] = useState(null);
   const [activeSubCat, setActiveSubCat] = useState(null);
@@ -50,13 +53,16 @@ function App() {
   const [workerForm, setWorkerForm] = useState({ name: '', phone: '', details: '', image: '', region: '', city: '', profession: '', portfolio_img: '', safety_details: '', rating: '5.0', is_busy: false });
   const [editingWorker, setEditingWorker] = useState(null);
   
-  // 🌟 نظام الموظفين الجديد (يدعم التعديل)
   const [newAdminForm, setNewAdminForm] = useState({ username: '', pin: '', role: 'موظف' });
   const [editingAdmin, setEditingAdmin] = useState(null);
 
+  // 🛒 حالات نقطة البيع (الكاشير) المنظمة
   const [adminCart, setAdminCart] = useState([]);
   const [vipDiscount, setVipDiscount] = useState('');
   const [posSearch, setPosSearch] = useState('');
+  const [posMainCat, setPosMainCat] = useState('');
+  const [posSubCat, setPosSubCat] = useState('');
+  const [editingOrderId, setEditingOrderId] = useState(null); // 🌟 لحفظ رقم الطلب الذي يتم التعديل عليه
 
   // =========================================================================
   // 4. حالات واجهة العميل
@@ -79,8 +85,9 @@ function App() {
 
   const fetchAllData = async () => {
     try {
-      const [pRes, cRes, wRes, sRes, aRes] = await Promise.all([
-        fetch(`${API_URL}/products`), fetch(`${API_URL}/categories`), fetch(`${API_URL}/workers`), fetch(`${API_URL}/settings`), fetch(`${API_URL}/admins`)
+      const [pRes, cRes, wRes, sRes, aRes, oRes] = await Promise.all([
+        fetch(`${API_URL}/products`), fetch(`${API_URL}/categories`), fetch(`${API_URL}/workers`), 
+        fetch(`${API_URL}/settings`), fetch(`${API_URL}/admins`), fetch(`${API_URL}/orders`)
       ]);
       const catsData = await cRes.json();
       setProducts(await pRes.json());
@@ -88,15 +95,22 @@ function App() {
       setWorkers(await wRes.json());
       setSettings(await sRes.json());
       setAdmins(await aRes.json());
+      setOrders(await oRes.json());
       
-      if (!isAdminPanel && catsData.length > 0 && !clientMain) {
-         const mainCategories = catsData.filter(c => !c.parent);
-         if (mainCategories.length > 0) {
-           setClientMain(mainCategories[0].name);
-           const subCategories = catsData.filter(c => c.parent === mainCategories[0].name);
-           if (subCategories.length > 0) { setClientSub(subCategories[0].name); }
-         }
+      const mainCategories = catsData.filter(c => !c.parent);
+      
+      if (!isAdminPanel && mainCategories.length > 0 && !clientMain) {
+         setClientMain(mainCategories[0].name);
+         const subCategories = catsData.filter(c => c.parent === mainCategories[0].name);
+         if (subCategories.length > 0) { setClientSub(subCategories[0].name); }
       }
+
+      if (isAdminPanel && mainCategories.length > 0 && !posMainCat) {
+        setPosMainCat(mainCategories[0].name);
+        const subCategories = catsData.filter(c => c.parent === mainCategories[0].name);
+        if (subCategories.length > 0) { setPosSubCat(subCategories[0].name); }
+      }
+
     } catch (error) { console.error("Data Fetch Error:", error); }
   };
 
@@ -104,7 +118,7 @@ function App() {
     if (!loginUsername || !loginPin) return setAlert("⚠️ يرجى إدخال اسم المستخدم والرمز السري");
     const user = admins.find(a => a.username.trim() === loginUsername.trim() && a.pin === loginPin);
     if (user) { 
-      setCurrentUser(user); setIsAuthenticated(true); setAdminView('pos'); setAlert(`✅ أهلاً بك يا ${user.username}`); 
+      setCurrentUser(user); setIsAuthenticated(true); setAdminView('orders'); setAlert(`✅ أهلاً بك يا ${user.username}`); 
     } else { 
       setAlert("❌ بيانات الدخول غير صحيحة"); 
     }
@@ -127,7 +141,54 @@ function App() {
     } catch (error) { setAlert("❌ حدث خطأ"); }
   };
 
-  // 🌟 الكاشير
+  // =========================================================================
+  // 🌟 نظام الطلبات والكاشير
+  // =========================================================================
+
+  // إرسال طلب العميل للمتجر الوارد
+  const handleCustomerSubmitOrder = async () => {
+    if (cart.length === 0) return;
+    const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    
+    try {
+      const res = await fetch(`${API_URL}/orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cart_data: cart, total: totalAmount })
+      });
+      
+      const newOrder = await res.json();
+      
+      // فتح الواتساب برسالة منسقة
+      let message = `*طلب جديد من المتجر* 🛒\n*رقم الطلب للاعتماد: #${newOrder.id}*\n\n`; 
+      cart.forEach(c => { message += `▪️ ${c.name}\n   الكمية: ${c.qty} | السعر: ${c.price} ر.س\n`; }); 
+      message += `\n*الإجمالي: ${totalAmount} ر.س*`;
+      
+      window.open(`https://wa.me/${settings.phone}?text=${encodeURIComponent(message)}`);
+      
+      setCart([]);
+      setShowCart(false);
+      setAlert("✅ تم تسجيل الطلب وإرساله للإدارة بنجاح!");
+    } catch (e) {
+      setAlert("❌ حدث خطأ في الاتصال بالخادم");
+    }
+  };
+
+  // نقل الطلب الوارد إلى الكاشير للتعديل والاعتماد
+  const loadOrderToPOS = (order) => {
+    setAdminCart(order.cart_data);
+    setEditingOrderId(order.id);
+    setAdminView('pos');
+    setAlert(`✏️ جاري تعديل طلب رقم #${order.id}`);
+  };
+
+  const deletePendingOrder = async (id) => {
+    if (window.confirm("إلغاء هذا الطلب وحذفه نهائياً؟")) {
+      await fetch(`${API_URL}/orders/${id}`, { method: 'DELETE' });
+      fetchAllData();
+    }
+  };
+
   const addToAdminCart = (product) => {
     if (product.stock <= 0) return setAlert("❌ هذا المنتج غير متوفر في المستودع");
     const existingIndex = adminCart.findIndex(item => item.id === product.id);
@@ -150,6 +211,7 @@ function App() {
     setAdminCart(newCart); 
   };
 
+  // اعتماد الفاتورة النهائية من الكاشير
   const handleCheckoutPOS = async () => {
     if (adminCart.length === 0) return setAlert("⚠️ السلة فارغة");
     try {
@@ -158,46 +220,41 @@ function App() {
         body: JSON.stringify({ cart: adminCart, modified_by: currentUser.username })
       });
       if (res.ok) {
-        setAlert("✅ تم اعتماد الطلب، وخصم المخزون بنجاح!");
-        setAdminCart([]); setVipDiscount(''); fetchAllData(); 
+        // إذا كان هذا طلباً وارداً وعدلناه، يجب أن نغير حالته لمكتمل
+        if (editingOrderId) {
+          await fetch(`${API_URL}/orders/${editingOrderId}/complete`, { method: 'PUT' });
+        }
+        
+        setAlert(editingOrderId ? `✅ تم اعتماد الطلب #${editingOrderId} وخصم المخزون بنجاح!` : "✅ تم البيع المباشر وخصم المخزون بنجاح!");
+        setAdminCart([]); 
+        setVipDiscount(''); 
+        setEditingOrderId(null);
+        setAdminView('orders'); // العودة للطلبات
+        fetchAllData(); 
       }
-    } catch (error) { setAlert("❌ حدث خطأ أثناء اعتماد الطلب"); }
+    } catch (error) { setAlert("❌ حدث خطأ أثناء الاعتماد"); }
   };
 
-  // 🌟 نظام الموظفين الجديد (إضافة + تعديل)
+  // =========================================================================
+  // دوال الإدارة الأخرى (موظفين، مخزون، منتجات، عمال)
+  // =========================================================================
+  const togglePinVisibility = (id) => { setShowPin(prev => ({ ...prev, [id]: !prev[id] })); };
+
   const handleSaveAdmin = async () => {
     if (!newAdminForm.username || !newAdminForm.pin) return setAlert("⚠️ يرجى إدخال اسم الموظف والرمز");
-    
     const method = editingAdmin ? 'PUT' : 'POST';
     const url = editingAdmin ? `${API_URL}/admins/${editingAdmin.id}` : `${API_URL}/admins`;
-
     try {
-      const res = await fetch(url, { 
-        method: method, 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify(newAdminForm) 
-      });
-      
+      const res = await fetch(url, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newAdminForm) });
       if (res.ok) { 
-        setAlert(editingAdmin ? "✅ تم تحديث بيانات الموظف بنجاح" : "✅ تم إضافة الموظف بنجاح"); 
-        setNewAdminForm({ username: '', pin: '', role: 'موظف' }); 
-        setEditingAdmin(null);
-        fetchAllData(); 
-      } else { 
-        setAlert("❌ اسم الموظف مسجل مسبقاً، يرجى اختيار اسم آخر"); 
-      }
+        setAlert(editingAdmin ? "✅ تم التحديث بنجاح" : "✅ تم الإضافة بنجاح"); 
+        setNewAdminForm({ username: '', pin: '', role: 'موظف' }); setEditingAdmin(null); fetchAllData(); 
+      } else { setAlert("❌ الاسم مسجل مسبقاً"); }
     } catch (e) { console.error(e); }
   };
 
-  const handleDeleteAdmin = async (id) => { 
-    if (window.confirm("هل أنت متأكد من حذف الموظف نهائياً؟")) { 
-      await fetch(`${API_URL}/admins/${id}`, { method: 'DELETE' }); 
-      setAlert("🗑️ تم الحذف"); 
-      fetchAllData(); 
-    } 
-  };
+  const handleDeleteAdmin = async (id) => { if (window.confirm("حذف الموظف نهائياً؟")) { await fetch(`${API_URL}/admins/${id}`, { method: 'DELETE' }); setAlert("🗑️ تم الحذف"); fetchAllData(); } };
 
-  // باقي الدوال (منتجات، عمال، الخ)
   const handleSaveProduct = async () => {
     if (!formData.name) return setAlert("⚠️ يرجى إدخال اسم المنتج");
     const method = editingItem ? 'PUT' : 'POST';
@@ -299,6 +356,15 @@ function App() {
       );
     }
 
+    let posProcessedProducts = products;
+    if (posSearch) { 
+      posProcessedProducts = products.filter(p => p.name.includes(posSearch)); 
+    } else { 
+      posProcessedProducts = products.filter(p => p.category === posSubCat); 
+    }
+
+    const pendingOrders = orders.filter(o => o.status === 'معلق');
+
     return (
       <div className="admin-root">
         {alert && <div className="toast-notification">{alert}</div>}
@@ -306,12 +372,17 @@ function App() {
           <div className="side-logo">⚙️ الإدارة<div className="user-badge">👤 {currentUser.username} | {currentUser.role}</div></div>
           
           <nav className="side-nav">
-            <button className={adminView === 'pos' ? 'active' : ''} onClick={() => setAdminView('pos')} style={{background: adminView === 'pos' ? 'var(--gold)' : '#2ecc71', color: adminView === 'pos' ? 'var(--navy)' : 'white', marginBottom:'15px', border:'2px solid var(--gold)'}}>🛒 نقطة البيع (كاشير)</button>
+            {/* 🌟 زر الطلبات الواردة الجديد يظهر للجميع وفيه إشعار بالعدد */}
+            <button className={adminView === 'orders' ? 'active' : ''} onClick={() => setAdminView('orders')} style={{position: 'relative'}}>
+              📥 الطلبات الواردة 
+              {pendingOrders.length > 0 && <span className="notification-badge">{pendingOrders.length}</span>}
+            </button>
+
+            <button className={adminView === 'pos' ? 'active' : ''} onClick={() => {setAdminView('pos'); setEditingOrderId(null); setAdminCart([]);}} style={{background: adminView === 'pos' ? 'var(--gold)' : '#2ecc71', color: adminView === 'pos' ? 'var(--navy)' : 'white', marginBottom:'15px', border:'2px solid var(--gold)'}}>🛒 نقطة البيع (كاشير)</button>
             <button className={adminView === 'inventory' ? 'active' : ''} onClick={() => {setAdminView('inventory'); setInvMainCat(null); setInvSubCat(null);}}>📦 المخزون الهرمي</button>
             <button className={adminView === 'categories' ? 'active' : ''} onClick={() => {setAdminView('categories'); setActiveMainCat(null); setActiveSubCat(null); setEditingItem(null);}}>🗂️ المنتجات والأقسام</button>
             <button className={adminView === 'workers' ? 'active' : ''} onClick={() => setAdminView('workers')}>👷‍♂️ حراج العمال</button>
             
-            {/* جدار الحماية */}
             {isManager && (
               <>
                 <button className={adminView === 'reports' ? 'active' : ''} onClick={() => setAdminView('reports')}>📊 التقارير والأرباح</button>
@@ -327,8 +398,7 @@ function App() {
         </aside>
 
         <main className="content-70">
-          {/* لوحة الإحصائيات (للمدير فقط) */}
-          {isManager && adminView !== 'pos' && (
+          {isManager && adminView !== 'pos' && adminView !== 'orders' && (
             <div className="admin-top-dashboard">
               <div className="dash-card"><h4>المنتجات المسجلة</h4><h2>{totalSystemProducts}</h2></div>
               <div className="dash-card"><h4>العمال والمقاولين</h4><h2>{totalSystemWorkers}</h2></div>
@@ -336,24 +406,100 @@ function App() {
             </div>
           )}
 
-          {/* ==================== 0. الكاشير (نقطة البيع) ==================== */}
+          {/* ==================== 0. شاشة الطلبات الواردة (الجديدة) ==================== */}
+          {adminView === 'orders' && (
+            <div className="panel-card fade-in">
+              <h2>📥 الطلبات الواردة (المعلقة للاعتماد)</h2>
+              <table className="pro-table">
+                <thead>
+                  <tr>
+                    <th>رقم الطلب</th>
+                    <th>تاريخ الطلب</th>
+                    <th>عدد الأصناف</th>
+                    <th>الإجمالي المبدئي</th>
+                    <th>الإجراءات</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pendingOrders.length === 0 && (
+                    <tr><td colSpan="5" style={{textAlign:'center', padding:'30px', color:'#888'}}>لا يوجد طلبات معلقة حالياً.</td></tr>
+                  )}
+                  {pendingOrders.map(order => (
+                    <tr key={order.id}>
+                      <td style={{color:'var(--gold)', fontWeight:'bold'}}>#{order.id}</td>
+                      <td>{new Date(order.created_at).toLocaleString('ar-SA')}</td>
+                      <td>{order.cart_data.length} أصناف</td>
+                      <td style={{color:'var(--green)'}}>{order.total} ر.س</td>
+                      <td>
+                        <button className="add-btn" style={{marginRight:'5px'}} onClick={() => loadOrderToPOS(order)}>مراجعة واعتماد في الكاشير ✏️</button>
+                        <button className="del-btn-sq" onClick={() => deletePendingOrder(order.id)}>إلغاء 🗑️</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* ==================== 1. الكاشير المنظم بالأقسام ==================== */}
           {adminView === 'pos' && (
             <div className="pos-container fade-in">
               <div className="pos-products-section">
-                <input type="text" className="pos-search" placeholder="🔍 ابحث عن منتج لإضافته للسلة..." value={posSearch} onChange={e => setPosSearch(e.target.value)}/>
-                <div className="pos-grid">
-                  {products.filter(p => p.name.includes(posSearch)).slice(0, 20).map(product => (
-                    <div key={product.id} className="pos-card" onClick={() => addToAdminCart(product)}>
-                      {product.stock <= 0 && <div className="pos-out">نفدت الكمية</div>}
-                      <img src={product.image || 'https://via.placeholder.com/100'} alt=""/>
-                      <h5>{product.name}</h5><span className="pos-price">{product.price} ر.س</span><span className="pos-stock">المتوفر: {product.stock}</span>
+                
+                <input type="text" className="pos-search" placeholder="🔍 ابحث عن منتج بالاسم..." value={posSearch} onChange={e => setPosSearch(e.target.value)}/>
+                
+                {/* 🌟 شريط الأقسام الخاص بالكاشير */}
+                {!posSearch && (
+                  <div className="pos-categories-container">
+                    <div className="pos-cats-row">
+                      {mainCategoriesList.map(cat => (
+                        <button 
+                          key={cat.id} 
+                          className={`pos-cat-btn ${posMainCat === cat.name ? 'active' : ''}`}
+                          onClick={() => { 
+                            setPosMainCat(cat.name); 
+                            const sub = categories.filter(x => x.parent === cat.name); 
+                            if(sub.length > 0) setPosSubCat(sub[0].name); else setPosSubCat(''); 
+                          }}
+                        >
+                          {cat.name}
+                        </button>
+                      ))}
                     </div>
-                  ))}
+                    
+                    {categories.filter(c => c.parent === posMainCat).length > 0 && (
+                      <div className="pos-subcats-row">
+                        {categories.filter(c => c.parent === posMainCat).map(subCat => (
+                          <button 
+                            key={subCat.id} 
+                            className={`pos-subcat-btn ${posSubCat === subCat.name ? 'active' : ''}`}
+                            onClick={() => setPosSubCat(subCat.name)}
+                          >
+                            {subCat.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="pos-grid">
+                  {posProcessedProducts.length === 0 ? (
+                     <div style={{gridColumn: '1 / -1', textAlign: 'center', padding: '20px', color: '#888'}}>لا يوجد منتجات في هذا القسم.</div>
+                  ) : (
+                    posProcessedProducts.map(product => (
+                      <div key={product.id} className="pos-card" onClick={() => addToAdminCart(product)}>
+                        {product.stock <= 0 && <div className="pos-out">نفدت الكمية</div>}
+                        <img src={product.image || 'https://via.placeholder.com/100'} alt=""/>
+                        <h5>{product.name}</h5><span className="pos-price">{product.price} ر.س</span><span className="pos-stock">المتوفر: {product.stock}</span>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
               
               <div className="pos-cart-section">
-                <h3>سلة المبيعات (الكاشير)</h3>
+                <h3>{editingOrderId ? `تعديل طلب رقم #${editingOrderId}` : `سلة البيع المباشر (كاشير)`}</h3>
                 <div className="pos-cart-items">
                   {adminCart.length === 0 && <div className="pos-empty">السلة فارغة حالياً</div>}
                   {adminCart.map((item, index) => (
@@ -381,6 +527,9 @@ function App() {
                     })()}
                   </div>
                   <button className="pos-checkout-btn" onClick={handleCheckoutPOS}>اعتماد الطلب وخصم المخزون ✅</button>
+                  {editingOrderId && (
+                    <button className="del-btn-sq" style={{width:'100%', marginTop:'10px', padding:'10px'}} onClick={() => {setEditingOrderId(null); setAdminCart([]); setAdminView('orders');}}>إلغاء التعديل والعودة</button>
+                  )}
                 </div>
               </div>
             </div>
@@ -399,7 +548,7 @@ function App() {
             </div>
           )}
 
-          {/* ==================== 1. المخزون ==================== */}
+          {/* ==================== المخزون اليدوي ==================== */}
           {adminView === 'inventory' && (
             <div className="fade-in">
               {!invMainCat ? (
@@ -410,7 +559,7 @@ function App() {
                 <div className="panel-card">
                   <button className="back-btn" onClick={() => setInvSubCat(null)}>🔙 رجوع</button>
                   <div className="path-header">مستودع: {invMainCat.name} ⬅️ {invSubCat.name}</div>
-                  <div style={{background:'#fff3cd', padding:'15px', borderRadius:'10px', marginBottom:'20px', color:'#856404', fontWeight:'bold', borderLeft:'5px solid #f1c40f'}}>💡 طريقة الجرد الفردي: اكتب الكمية المطلوبة في المربع الأبيض، ثم اضغط (إضافة للمستودع) أو (تسجيل مبيعات). وللطلبات الكبيرة استخدم شاشة (الكاشير).</div>
+                  <div style={{background:'#fff3cd', padding:'15px', borderRadius:'10px', marginBottom:'20px', color:'#856404', fontWeight:'bold', borderLeft:'5px solid #f1c40f'}}>💡 طريقة الجرد الفردي: اكتب الكمية في المربع الأبيض، ثم اضغط (إضافة) أو (بيع). وللطلبات الكبيرة استخدم (الكاشير).</div>
 
                   <table className="pro-table">
                     <thead><tr><th>المنتج</th><th>بالمستودع</th><th>تم بيعه</th><th>إجراءات الجرد اليدوي</th><th>آخر تحديث</th></tr></thead>
@@ -435,7 +584,7 @@ function App() {
             </div>
           )}
 
-          {/* ==================== 2. المنتجات ==================== */}
+          {/* ==================== المنتجات ==================== */}
           {adminView === 'categories' && (
             <div className="fade-in">
               {!activeMainCat ? (
@@ -462,7 +611,7 @@ function App() {
             </div>
           )}
 
-          {/* ==================== 3. العمال ==================== */}
+          {/* ==================== العمال ==================== */}
           {adminView === 'workers' && (
             <div className="panel-card fade-in"><h2>👷‍♂️ إضافة وإدارة العمال</h2>
               <div className="product-entry-form" style={{flexDirection: 'column'}}><div style={{display: 'flex', gap: '20px', flexWrap: 'wrap'}}>
@@ -495,7 +644,7 @@ function App() {
             </div>
           )}
 
-          {/* ==================== 4. التقارير ==================== */}
+          {/* ==================== التقارير ==================== */}
           {adminView === 'reports' && isManager && (
             <div className="panel-card fade-in"><h2>📊 التقارير المالية</h2>
               <div className="reports-split-container">
@@ -519,7 +668,7 @@ function App() {
             </div>
           )}
 
-          {/* ==================== 5. إدارة الموظفين الجديدة كلياً (إضافة وتعديل) ==================== */}
+          {/* ==================== الموظفين (مع ميزة العين 👁️) ==================== */}
           {adminView === 'users' && isManager && (
             <div className="panel-card fade-in"><h2>👥 إدارة الموظفين والصلاحيات</h2>
               <div className="add-row mb-20" style={{background:'#f9f9f9', padding:'20px', borderRadius:'10px'}}>
@@ -532,9 +681,7 @@ function App() {
                 <button className="add-btn" onClick={handleSaveAdmin} style={{background: editingAdmin ? 'var(--navy)' : 'var(--gold)', color: editingAdmin ? 'white' : 'var(--navy)'}}>
                   {editingAdmin ? 'حفظ التعديلات 💾' : 'إضافة موظف ➕'}
                 </button>
-                {editingAdmin && (
-                  <button className="del-btn-sq" style={{background:'#aaa'}} onClick={() => {setEditingAdmin(null); setNewAdminForm({username:'', pin:'', role:'موظف'});}}>إلغاء</button>
-                )}
+                {editingAdmin && (<button className="del-btn-sq" style={{background:'#aaa'}} onClick={() => {setEditingAdmin(null); setNewAdminForm({username:'', pin:'', role:'موظف'});}}>إلغاء</button>)}
               </div>
               
               <table className="pro-table">
@@ -544,17 +691,17 @@ function App() {
                     <tr key={adminUser.id}>
                       <td>{adminUser.username}</td>
                       <td><span className="sc-badge">{adminUser.role}</span></td>
-                      <td>{adminUser.pin}</td>
+                      <td style={{fontFamily: 'monospace', letterSpacing: showPin[adminUser.id] ? 'normal' : '2px'}}>
+                        {showPin[adminUser.id] ? adminUser.pin : '••••••'}
+                        <button onClick={() => togglePinVisibility(adminUser.id)} style={{border:'none', background:'none', cursor:'pointer', fontSize:'1.1rem', marginLeft:'10px'}} title={showPin[adminUser.id] ? "إخفاء" : "إظهار"}>
+                          {showPin[adminUser.id] ? '🙈' : '👁️'}
+                        </button>
+                      </td>
                       <td>
-                        {/* زر التعديل متاح للجميع */}
                         <button className="act-btn edit" style={{marginRight: '5px'}} onClick={() => { setEditingAdmin(adminUser); setNewAdminForm({ username: adminUser.username, pin: adminUser.pin, role: adminUser.role }); }}>تعديل ✏️</button>
-                        
-                        {/* 🔒 الحماية الذكية: تمنع المدير من حذف الحساب الذي يسجل الدخول به حالياً */}
                         {adminUser.id !== currentUser.id ? (
                           <button className="del-btn-sq" onClick={() => handleDeleteAdmin(adminUser.id)}>حذف 🗑️</button>
-                        ) : (
-                          <span style={{color: '#888', fontSize: '0.8rem'}}>حسابك الحالي</span>
-                        )}
+                        ) : (<span style={{color: '#888', fontSize: '0.8rem'}}>حسابك الحالي</span>)}
                       </td>
                     </tr>
                   ))}
@@ -563,7 +710,7 @@ function App() {
             </div>
           )}
 
-          {/* ==================== 6. الإعدادات ==================== */}
+          {/* ==================== الإعدادات ==================== */}
           {adminView === 'settings' && isManager && (
             <div className="panel-card fade-in"><h2>⚙️ إعدادات المتجر</h2><div className="settings-grid"><div className="form-group"><label>اسم المتجر</label><input value={settings.shop_name} onChange={e => setSettings({...settings, shop_name: e.target.value})}/></div><div className="form-group"><label>رقم واتساب الطلبات</label><input value={settings.phone} onChange={e => setSettings({...settings, phone: e.target.value})}/></div></div><button className="save-btn full-w-btn" onClick={async () => { await fetch(`${API_URL}/settings`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) }); setAlert("✅ تم الحفظ");}}>حفظ</button></div>
           )}
@@ -573,7 +720,7 @@ function App() {
   }
 
   // =========================================================================
-  // 💻 واجهة العميل (المتجر العام)
+  // 💻 واجهة العميل 
   // =========================================================================
   let processedProducts = products;
   if (searchQuery) { processedProducts = processedProducts.filter(p => p.name.includes(searchQuery)); } 
@@ -716,10 +863,8 @@ function App() {
               <div className="total-gold-box">الإجمالي: <span>{cart.reduce((sum, item) => sum + (item.price * item.qty), 0)}</span> ر.س</div>
               <div className="cart-buttons-row">
                 <button className="btn-continue-shopping" onClick={() => setShowCart(false)}>العودة للتسوق</button>
-                <button className="btn-wa-confirm" onClick={() => {
-                    let message = `*طلب جديد* 🛒\n\n`; cart.forEach(c => { message += `▪️ ${c.name}\n   الكمية: ${c.qty} | السعر: ${c.price} ر.س\n`; }); message += `\n*الإجمالي: ${cart.reduce((sum, item) => sum + (item.price * item.qty), 0)} ر.س*`;
-                    window.open(`https://wa.me/${settings.phone}?text=${encodeURIComponent(message)}`);
-                  }}>تأكيد الطلب ✅</button>
+                {/* 🌟 زر إرسال الطلب المحدث الذي يحفظ الطلب في الإدارة */}
+                <button className="btn-wa-confirm" onClick={handleCustomerSubmitOrder}>تأكيد وإرسال الطلب ✅</button>
               </div>
             </div>
           </div>
