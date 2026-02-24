@@ -7,6 +7,7 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
+// 🌟 الاتصال بقاعدة بيانات نيون (يجب أن يكون الرابط في Render باسم DATABASE_URL)
 const sql = postgres(process.env.DATABASE_URL, { ssl: 'require' });
 
 async function initDb() {
@@ -29,7 +30,9 @@ async function initDb() {
 }
 initDb();
 
-// 📥 التحديث: استقبال الطلبات وحفظها في قاعدة بيانات نيون
+// =========================================================
+// 📥 مسار استقبال الطلبات الجديدة من العميل
+// =========================================================
 app.post('/api/orders', async (req, res) => {
   const { customer_name, customer_phone, cart_data, total } = req.body;
   try {
@@ -40,18 +43,66 @@ app.post('/api/orders', async (req, res) => {
     `;
     res.status(201).json(newOrder[0]);
   } catch (err) {
-    console.error("خطأ في حفظ الطلب:", err.message);
     res.status(500).json({ error: "فشل في حفظ الطلب" });
   }
 });
 
-// باقي المسارات (المنتجات، العمال، الكاشير)
-app.get('/api/products', async (req, res) => { res.json(await sql`SELECT * FROM products`); });
-app.get('/api/categories', async (req, res) => { res.json(await sql`SELECT * FROM categories`); });
-app.get('/api/workers', async (req, res) => { res.json(await sql`SELECT * FROM workers`); });
-app.get('/api/settings', async (req, res) => { const s = await sql`SELECT * FROM settings LIMIT 1`; res.json(s[0]); });
-app.get('/api/admins', async (req, res) => { res.json(await sql`SELECT * FROM admins`); });
-app.get('/api/orders', async (req, res) => { res.json(await sql`SELECT * FROM orders ORDER BY created_at DESC`); });
+// =========================================================
+// 🛒 باقي مسارات المتجر الأساسية ليعمل بدون مشاكل
+// =========================================================
+app.get('/api/orders', async (req, res) => {
+  try { res.json(await sql`SELECT * FROM orders ORDER BY created_at DESC`); } 
+  catch(e) { res.status(500).json([]); }
+});
+
+app.delete('/api/orders/:id', async (req, res) => {
+  try { await sql`DELETE FROM orders WHERE id = ${req.params.id}`; res.json({ success: true }); }
+  catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/products', async (req, res) => {
+  try { res.json(await sql`SELECT * FROM products ORDER BY id DESC`); } 
+  catch(e) { res.status(500).json([]); }
+});
+
+app.get('/api/categories', async (req, res) => {
+  try { res.json(await sql`SELECT * FROM categories`); } 
+  catch(e) { res.status(500).json([]); }
+});
+
+app.get('/api/workers', async (req, res) => {
+  try { res.json(await sql`SELECT * FROM workers`); } 
+  catch(e) { res.status(500).json([]); }
+});
+
+app.get('/api/admins', async (req, res) => {
+  try { res.json(await sql`SELECT * FROM admins`); } 
+  catch(e) { res.status(500).json([]); }
+});
+
+app.get('/api/settings', async (req, res) => {
+  try { 
+    const s = await sql`SELECT * FROM settings LIMIT 1`; 
+    res.json(s.length ? s[0] : { phone: '', shop_name: '' }); 
+  } 
+  catch(e) { res.status(500).json({}); }
+});
+
+// مسارات الكاشير والمخزون
+app.post('/api/pos/checkout', async (req, res) => {
+  try {
+    const { cart } = req.body;
+    for (let item of cart) {
+      await sql`UPDATE products SET stock = stock - ${item.qty}, sold = COALESCE(sold, 0) + ${item.qty} WHERE id = ${item.id}`;
+    }
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/orders/:id/complete', async (req, res) => {
+  try { await sql`UPDATE orders SET status = 'مكتمل' WHERE id = ${req.params.id}`; res.json({ success: true }); }
+  catch(e) { res.status(500).json({ error: e.message }); }
+});
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => console.log(`🚀 Server Running on port ${PORT}`));

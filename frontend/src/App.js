@@ -1,6 +1,6 @@
 /* eslint-disable */
 import React, { useState, useEffect } from 'react';
-import Swal from 'sweetalert2'; 
+import Swal from 'sweetalert2';
 import './App.css';
 
 const API_URL = 'https://drop-and-spark-1.onrender.com/api';
@@ -114,7 +114,7 @@ function App() {
     } catch (error) {}
   };
 
-  // 🌟 التحديث: إرسال الطلب للسيرفر وإظهار رسالة الشكر (بدون واتساب)
+  // 🌟 إرسال الطلب للسيرفر، إظهار الشكر، وحفظه في لوحة الإدارة (معدل بالكامل)
   const handleCustomerSubmitOrder = async () => {
     if (cart.length === 0) return setAlert("⚠️ السلة فارغة");
     if (!customerName || !customerPhone) return setAlert("⚠️ الرجاء إدخال الاسم ورقم الجوال لتسهيل التواصل");
@@ -131,22 +131,22 @@ function App() {
       if (res.ok) {
         Swal.fire({
           icon: 'success',
-          title: 'شكراً لكم على ثقتكم!',
-          text: 'تم استلام طلبكم بنجاح، وسنقوم بالتواصل معكم في أقرب وقت ممكن لتأكيده.',
-          confirmButtonColor: '#28a745',
+          title: 'تم استلام طلبك بنجاح!',
+          text: 'شكراً لكم على ثقتكم.. سيتم التواصل معكم في أقرب وقت ممكن لتأكيد طلبكم.',
+          confirmButtonColor: 'var(--green)',
           confirmButtonText: 'حسناً'
         }).then(() => {
           setCart([]);
           setCustomerName('');
           setCustomerPhone('');
-          setShowCart(false);
+          setShowCart(false); 
           fetchAllData();
         });
       } else {
-        setAlert("❌ حدث خطأ أثناء إرسال الطلب");
+        setAlert("❌ حدث خطأ في الخادم أثناء الإرسال");
       }
     } catch (e) {
-      setAlert("❌ خطأ في الاتصال بالخادم");
+      setAlert("❌ حدث خطأ في الاتصال بالإنترنت");
     }
   };
 
@@ -365,12 +365,14 @@ function App() {
                   </div>
                 )}
                 <div className="pos-grid">
-                  {posProcessedProducts.map(product => (
-                    <div key={product.id} className="pos-card" onClick={() => addToAdminCart(product)}>
-                      {product.stock <= 0 && <div className="pos-out">نفدت</div>}
-                      <img src={product.image || 'https://via.placeholder.com/100'} alt=""/><h5>{product.name}</h5><span className="pos-price">{product.price}</span><span className="pos-stock">بالمستودع: {product.stock}</span>
-                    </div>
-                  ))}
+                  {posProcessedProducts.length === 0 ? (<div style={{gridColumn: '1 / -1', textAlign: 'center', padding: '20px'}}>لا يوجد منتجات في هذا القسم.</div>) : (
+                    posProcessedProducts.map(product => (
+                      <div key={product.id} className="pos-card" onClick={() => addToAdminCart(product)}>
+                        {product.stock <= 0 && <div className="pos-out">نفدت</div>}
+                        <img src={product.image || 'https://via.placeholder.com/100'} alt=""/><h5>{product.name}</h5><span className="pos-price">{product.price}</span><span className="pos-stock">بالمستودع: {product.stock}</span>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
               <div className="pos-cart-section">
@@ -380,13 +382,15 @@ function App() {
                   {adminCart.map((item, index) => (<div key={index} className="pos-cart-row"><div className="pos-cart-info"><b>{item.name}</b><span>{item.price} ر.س</span></div><div className="pos-qty-controls"><button onClick={() => updateAdminCartQty(index, 1)}>+</button><span>{item.qty}</span><button onClick={() => updateAdminCartQty(index, -1)}>-</button></div></div>))}
                 </div>
                 <div className="pos-checkout-area">
+                  <div className="vip-discount-box"><label>🎁 خصم خاص (%):</label><input type="number" placeholder="0" value={vipDiscount} onChange={e => setVipDiscount(e.target.value)}/></div>
                   <div className="pos-totals">
                     {(() => {
-                      const finalTotal = adminCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-                      return (<div className="p-row final"><span>النهائي:</span> <span>{finalTotal.toFixed(2)} ر.س</span></div>);
+                      const subtotal = adminCart.reduce((sum, item) => sum + (item.price * item.qty), 0); const discountValue = vipDiscount ? (subtotal * (Number(vipDiscount) / 100)) : 0; const finalTotal = subtotal - discountValue;
+                      return (<><div className="p-row"><span>المجموع:</span> <span>{subtotal}</span></div>{vipDiscount && <div className="p-row discount"><span>الخصم:</span> <span>- {discountValue.toFixed(2)}</span></div>}<div className="p-row final"><span>النهائي:</span> <span>{finalTotal.toFixed(2)} ر.س</span></div></>);
                     })()}
                   </div>
                   <button className="pos-checkout-btn" onClick={handleCheckoutPOS}>اعتماد وخصم المخزون ✅</button>
+                  {editingOrderId && (<button className="del-btn-sq" style={{width:'100%', marginTop:'10px'}} onClick={() => {setEditingOrderId(null); setAdminCart([]); setAdminView('orders');}}>إلغاء التعديل والعودة</button>)}
                 </div>
               </div>
             </div>
@@ -429,17 +433,20 @@ function App() {
   }
 
   // =========================================================================
-  // 💻 واجهة العميل 
+  // 💻 واجهة العميل (التحديث هنا للكتابة اليدوية للكميات)
   // =========================================================================
   let processedProducts = products;
   if (searchQuery) { processedProducts = processedProducts.filter(p => p.name.includes(searchQuery)); } 
   else { processedProducts = processedProducts.filter(p => p.category === clientSub); }
+  if (sortOption === 'priceLow') { processedProducts.sort((a, b) => Number(a.price) - Number(b.price)); } 
+  else if (sortOption === 'priceHigh') { processedProducts.sort((a, b) => Number(b.price) - Number(a.price)); }
 
   return (
     <div className={`App client-theme ${showCart || selectedProduct || showWorkersHaraj ? 'no-scroll' : ''}`}>
       <header className="royal-header">
          <div className="logo-box">💧 <span>مَتجر</span> {settings.shop_name} ⚡</div>
          <div className="search-bar-wrapper"><input placeholder="🔍 ابحث عن أي منتج..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} /></div>
+         <button className="worker-haraj-btn" onClick={() => {setShowWorkersHaraj(true);}}>👷‍♂️ <span className="hide-mobile">العمال</span></button>
          <button className="open-cart-large desktop-only" onClick={() => setShowCart(true)}>🛒 السلة <span>{cart.length}</span></button>
       </header>
       
@@ -451,48 +458,111 @@ function App() {
       )}
       
       <div className="gallery-container">
-        <div className="p-grid-royal">
-          {processedProducts.map(product => (
-            <div key={product.id} className="royal-p-card" onClick={() => setSelectedProduct(product)}>
-              <div className="p-img-box"><img src={product.image || 'https://via.placeholder.com/150'} alt={product.name} /></div>
-              <div className="p-info-box">
-                <h4>{product.name}</h4>
-                <div className="price-area"><span className="now-price">{product.price} ر.س</span></div>
-                <div className="action-area">
-                  <button className="add-btn-p" onClick={(e) => { e.stopPropagation(); addToCart(product); }}>أضف للسلة 🛒</button>
+        {processedProducts.length === 0 ? (<div className="empty-state"><h3>لم نتمكن من إيجاد منتجات هنا.</h3></div>) : (
+          <div className="p-grid-royal">
+            {processedProducts.map(product => (
+              <div key={product.id} className="royal-p-card" onClick={() => setSelectedProduct(product)}>
+                {product.out_of_stock && <div className="sold-tag">نفدت الكمية</div>}
+                <div className="p-img-box"><img src={product.image || 'https://via.placeholder.com/150'} alt={product.name} /></div>
+                <div className="p-info-box">
+                  <h4>{product.name}</h4>
+                  <div className="price-area"><span className="now-price">{product.price} ر.س</span></div>
+                  <div className="action-area">
+                    {/* 🌟 تعديل هنا: إضافة حقل كتابة يدوية بدلاً من span العادي */}
+                    {!product.out_of_stock && (
+                      <div className="qty-controls" onClick={e => e.stopPropagation()}>
+                        <button onClick={() => handleProductQuantityChange(product.id, 1)}>+</button>
+                        <input 
+                          type="number" 
+                          min="1" 
+                          value={itemQtys[product.id] || 1} 
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value);
+                            if (!isNaN(val) && val > 0) setItemQtys(prev => ({ ...prev, [product.id]: val }));
+                          }}
+                          style={{width: '40px', textAlign: 'center', fontWeight: 'bold', background: 'transparent', border: 'none', margin: '0 5px'}}
+                        />
+                        <button onClick={() => handleProductQuantityChange(product.id, -1)}>-</button>
+                      </div>
+                    )}
+                    <button className={`add-btn-p ${product.out_of_stock ? 'disabled' : ''}`} disabled={product.out_of_stock} onClick={(e) => { e.stopPropagation(); if (!product.out_of_stock) { addToCart(product); } }}>{product.out_of_stock ? 'غير متوفر' : 'أضف للسلة 🛒'}</button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
+      <button className="floating-wa-btn" onClick={() => window.open(`https://wa.me/${settings.phone}`)}>💬</button>
+      {cart.length > 0 && (<div className="mobile-sticky-cart" onClick={() => setShowCart(true)}><div className="m-cart-info">🛒 في السلة: <b>{cart.length}</b></div><div className="m-cart-total">{cart.reduce((sum, item) => sum + (item.price * item.qty), 0)} ر.س</div></div>)}
+
+      {selectedProduct && (
+        <div className="product-modal-overlay" onClick={() => setSelectedProduct(null)}>
+          <div className="product-modal-content fade-in-up" onClick={e => e.stopPropagation()}>
+            <button className="modal-close-x" onClick={() => setSelectedProduct(null)}>✕</button>
+            <div className="modal-body-split">
+              <div className="m-img-side"><img src={selectedProduct.image} alt={selectedProduct.name} /></div>
+              <div className="m-details-side">
+                <h2>{selectedProduct.name}</h2>
+                <div className="m-price-box"><span className="m-now">{selectedProduct.price} ر.س</span></div>
+                <div className="m-desc-box"><h3>المواصفات:</h3><div className="m-desc">{selectedProduct.details || 'لا توجد تفاصيل.'}</div></div>
+                {!selectedProduct.out_of_stock ? (<button className="m-add-btn" onClick={() => addToCart(selectedProduct)}>إضافة للسلة 🛒</button>) : (<button className="m-add-btn disabled" disabled>🚫 نفدت</button>)}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {showCart && (
-        <div className="cart-overlay open">
+        <div className={`cart-overlay open`}>
           <div className="cart-inner-container-large fade-in-up">
-            <div className="cart-header-fixed"><h2>سلة المشتريات 🛒</h2><button className="close-btn-x" onClick={() => setShowCart(false)}>✕</button></div>
+            <div className="cart-header-fixed"><h2>سلة المشتريات الخاصة بك 🛒</h2><button className="close-btn-x" onClick={() => setShowCart(false)}>✕</button></div>
+            
             <div className="cart-products-scroll">
+              {cart.length === 0 && (<p className="empty-cart-msg">سلتك فارغة، تجول في المتجر وأضف منتجات!</p>)}
               {cart.map((item, index) => (
                 <div key={index} className="cart-product-row">
                   <img src={item.image} alt="" className="cart-p-img" />
                   <div className="cart-p-details">
                     <div className="cart-p-title">{item.name}</div>
-                    <div className="qty-controls-mini"><button onClick={() => updateCartItemQuantity(index, 1)}>+</button><span>{item.qty}</span><button onClick={() => updateCartItemQuantity(index, -1)}>-</button></div>
+                    {/* 🌟 تعديل هنا: إضافة حقل كتابة يدوية للكمية داخل السلة */}
+                    <div className="qty-controls-mini">
+                      <button onClick={() => updateCartItemQuantity(index, 1)}>+</button>
+                      <input 
+                        type="number" 
+                        min="1" 
+                        value={item.qty} 
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value);
+                          if (!isNaN(val) && val > 0) {
+                            const newCart = [...cart];
+                            newCart[index].qty = val;
+                            setCart(newCart);
+                          }
+                        }}
+                        style={{width: '35px', textAlign: 'center', fontWeight: 'bold', background: 'transparent', border: '1px solid rgba(0,0,0,0.1)', borderRadius: '4px'}}
+                      />
+                      <button onClick={() => updateCartItemQuantity(index, -1)}>-</button>
+                    </div>
                   </div>
                   <div className="cart-item-total">{item.price * item.qty} ر.س</div>
                 </div>
               ))}
+              
               {cart.length > 0 && (
                 <div className="customer-info-box">
                   <h4 style={{color:'var(--navy)', marginBottom:'10px'}}>لتسهيل التواصل وتأكيد الطلب:</h4>
                   <input type="text" placeholder="الاسم الكريم..." value={customerName} onChange={e => setCustomerName(e.target.value)} className="c-input"/>
+                  {/* 🌟 تعديل: إزالة كلمة "للواتساب" بناءً على طلبك */}
                   <input type="tel" placeholder="رقم الجوال..." value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} className="c-input"/>
                 </div>
               )}
             </div>
+            
             {cart.length > 0 && (
               <div className="cart-floating-action">
-                <div className="total-gold-box">الإجمالي: <span>{cart.reduce((sum, item) => sum + (item.price * item.qty), 0)}</span> ر.س</div>
+                <div className="total-gold-box" style={{marginBottom:'0'}}>الإجمالي: <span>{cart.reduce((sum, item) => sum + (item.price * item.qty), 0)}</span> ر.س</div>
                 <button className="btn-wa-confirm-giant" onClick={handleCustomerSubmitOrder}>إرسال الطلب واعتماده ✅</button>
               </div>
             )}
