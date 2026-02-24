@@ -1,9 +1,9 @@
 /* eslint-disable */
 import React, { useState, useEffect } from 'react';
-import Swal from 'sweetalert2';
+import Swal from 'sweetalert2'; 
 import './App.css';
 
-const API_URL = 'https://drop-and-spark-1.onrender.com/api';
+const API_URL = 'https://drop-and-spark.onrender.com/api';
 
 function App() {
   const [products, setProducts] = useState([]);
@@ -16,7 +16,6 @@ function App() {
   const [cart, setCart] = useState([]);
   const [alert, setAlert] = useState(null);
   
-  // 🌟 بيانات العميل في السلة
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   
@@ -62,9 +61,6 @@ function App() {
   const [itemQtys, setItemQtys] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [harajRegion, setHarajRegion] = useState('');
-  const [harajCity, setHarajCity] = useState('');
-  const [sortOption, setSortOption] = useState('default');
 
   const isAdminPanel = window.location.pathname.includes('/admin');
 
@@ -114,13 +110,14 @@ function App() {
     } catch (error) {}
   };
 
-  // 🌟 إرسال الطلب للسيرفر، إظهار الشكر، وحفظه في لوحة الإدارة (معدل بالكامل)
   const handleCustomerSubmitOrder = async () => {
-    if (cart.length === 0) return setAlert("⚠️ السلة فارغة");
-    if (!customerName || !customerPhone) return setAlert("⚠️ الرجاء إدخال الاسم ورقم الجوال لتسهيل التواصل");
+    if (cart.length === 0) { return Swal.fire({ icon: 'warning', title: 'السلة فارغة', text: 'الرجاء إضافة منتجات للسلة أولاً.', confirmButtonColor: '#f39c12' }); }
+    if (!customerName || !customerPhone) { return Swal.fire({ icon: 'warning', title: 'بيانات ناقصة', text: 'الرجاء إدخال الاسم ورقم الجوال لتسهيل التواصل.', confirmButtonColor: '#f39c12' }); }
 
     const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
     
+    Swal.fire({ title: 'جاري إرسال الطلب...', text: 'الرجاء الانتظار لحظات', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+
     try {
       const res = await fetch(`${API_URL}/orders`, {
         method: 'POST',
@@ -131,43 +128,34 @@ function App() {
       if (res.ok) {
         Swal.fire({
           icon: 'success',
-          title: 'تم استلام طلبك بنجاح!',
-          text: 'شكراً لكم على ثقتكم.. سيتم التواصل معكم في أقرب وقت ممكن لتأكيد طلبكم.',
-          confirmButtonColor: 'var(--green)',
+          title: 'شكراً لكم على ثقتكم!',
+          text: 'تم استلام طلبكم بنجاح، وسنقوم بالتواصل معكم قريباً لتأكيد الطلب.',
+          confirmButtonColor: '#28a745',
           confirmButtonText: 'حسناً'
         }).then(() => {
           setCart([]);
           setCustomerName('');
           setCustomerPhone('');
-          setShowCart(false); 
+          setShowCart(false);
+          setItemQtys({});
           fetchAllData();
         });
       } else {
-        setAlert("❌ حدث خطأ في الخادم أثناء الإرسال");
+        Swal.fire({ icon: 'error', title: 'عذراً', text: 'حدث خطأ في الخادم ولم يتم إرسال الطلب، يرجى المحاولة لاحقاً.' });
       }
     } catch (e) {
-      setAlert("❌ حدث خطأ في الاتصال بالإنترنت");
+      Swal.fire({ icon: 'error', title: 'فشل الاتصال', text: 'تأكد من اتصالك بالإنترنت.' });
     }
   };
 
-  const loadOrderToPOS = (order) => {
-    setAdminCart(order.cart_data); setEditingOrderId(order.id); setAdminView('pos'); setAlert(`✏️ جاري مراجعة طلب رقم #${order.id}`);
-  };
-
-  const deletePendingOrder = async (id) => {
-    if (window.confirm("إلغاء وحذف الطلب نهائياً؟")) { await fetch(`${API_URL}/orders/${id}`, { method: 'DELETE' }); fetchAllData(); }
-  };
-
+  const loadOrderToPOS = (order) => { setAdminCart(order.cart_data); setEditingOrderId(order.id); setAdminView('pos'); setAlert(`✏️ جاري مراجعة طلب رقم #${order.id}`); };
+  const deletePendingOrder = async (id) => { if (window.confirm("إلغاء وحذف الطلب نهائياً؟")) { await fetch(`${API_URL}/orders/${id}`, { method: 'DELETE' }); fetchAllData(); } };
+  
   const handleRefundOrder = async (order) => {
     if (window.confirm("تأكيد إرجاع هذه البضاعة للمخزون وخصمها من المبيعات؟")) {
       try {
-        await fetch(`${API_URL}/pos/refund`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ cart: order.cart_data, order_id: order.id, modified_by: currentUser.username })
-        });
-        setAlert("🔄 تم إرجاع البضاعة للمستودع بنجاح");
-        fetchAllData();
+        await fetch(`${API_URL}/pos/refund`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cart: order.cart_data, order_id: order.id, modified_by: currentUser.username }) });
+        setAlert("🔄 تم إرجاع البضاعة للمستودع بنجاح"); fetchAllData();
       } catch (e) { setAlert("❌ خطأ في الإرجاع"); }
     }
   };
@@ -191,9 +179,7 @@ function App() {
   const handleCheckoutPOS = async () => {
     if (adminCart.length === 0) return setAlert("⚠️ السلة فارغة");
     try {
-      const res = await fetch(`${API_URL}/pos/checkout`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cart: adminCart, modified_by: currentUser.username })
-      });
+      const res = await fetch(`${API_URL}/pos/checkout`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cart: adminCart, modified_by: currentUser.username }) });
       if (res.ok) {
         if (editingOrderId) { await fetch(`${API_URL}/orders/${editingOrderId}/complete`, { method: 'PUT' }); }
         setAlert(editingOrderId ? `✅ تم اعتماد الطلب وخصم المخزون!` : "✅ تم البيع المباشر وخصم المخزون!");
@@ -216,6 +202,7 @@ function App() {
   };
 
   const handleDeleteAdmin = async (id) => { if (window.confirm("حذف الموظف؟")) { await fetch(`${API_URL}/admins/${id}`, { method: 'DELETE' }); fetchAllData(); } };
+  
   const handleSaveProduct = async () => {
     if (!formData.name) return setAlert("⚠️ يرجى إدخال اسم المنتج");
     const method = editingItem ? 'PUT' : 'POST';
@@ -247,6 +234,7 @@ function App() {
   const handleToggleWorker = async (w) => { await fetch(`${API_URL}/workers/${w.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...w, hidden: !w.hidden, modified_by: currentUser.username }) }); fetchAllData(); };
   const handleDeleteWorker = async (id) => { if (window.confirm("حذف العامل؟")) { await fetch(`${API_URL}/workers/${id}`, { method: 'DELETE' }); fetchAllData(); } };
   const handleClientContactWorker = async (w) => { await fetch(`${API_URL}/workers/${w.id}/click`, { method: 'PUT' }); window.open(`https://wa.me/${w.phone}?text=مرحباً`); setTimeout(fetchAllData, 1500); };
+  
   const handleImageUpload = (e, targetField, isWorker = false) => {
     const file = e.target.files[0]; if (!file) return;
     const reader = new FileReader(); reader.readAsDataURL(file);
@@ -259,15 +247,31 @@ function App() {
     };
   };
 
-  const addToCart = (product, qty = 1) => {
-    const customQty = itemQtys[product.id] || qty;
+  const addToCart = (product, fallbackQty = 1) => {
+    const customQty = itemQtys[product.id] || fallbackQty;
     const existingIndex = cart.findIndex(item => item.id === product.id);
-    if (existingIndex >= 0) { const newCart = [...cart]; newCart[existingIndex].qty += customQty; setCart(newCart); } 
-    else { setCart([...cart, { ...product, qty: customQty }]); }
-    setAlert(`✅ تمت الإضافة للسلة`); setItemQtys(prev => ({ ...prev, [product.id]: 1 })); setSelectedProduct(null); 
+    if (existingIndex >= 0) { 
+      const newCart = [...cart]; 
+      newCart[existingIndex].qty += customQty; 
+      setCart(newCart); 
+    } else { 
+      setCart([...cart, { ...product, qty: customQty }]); 
+    }
+    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'تمت الإضافة للسلة 🛒', showConfirmButton: false, timer: 1500 });
+    setItemQtys(prev => ({ ...prev, [product.id]: 1 })); 
+    setSelectedProduct(null); 
   };
-  const updateCartItemQuantity = (index, change) => { const newCart = [...cart]; newCart[index].qty += change; if (newCart[index].qty <= 0) newCart.splice(index, 1); setCart(newCart); };
-  const handleProductQuantityChange = (id, change) => { setItemQtys(prev => ({ ...prev, [id]: Math.max(1, (prev[id] || 1) + change) })); };
+  
+  const updateCartItemQuantity = (index, change) => { 
+    const newCart = [...cart]; 
+    newCart[index].qty += change; 
+    if (newCart[index].qty <= 0) newCart.splice(index, 1); 
+    setCart(newCart); 
+  };
+  
+  const handleProductQuantityChange = (id, change) => { 
+    setItemQtys(prev => ({ ...prev, [id]: Math.max(1, (prev[id] || 1) + change) })); 
+  };
 
   const mainCategoriesList = categories.filter(c => !c.parent);
   const totalSystemProducts = products.length;
@@ -275,7 +279,7 @@ function App() {
   const totalSystemProfits = products.reduce((sum, p) => sum + ((Number(p.sold) || 0) * Number(p.price)), 0);
 
   // =========================================================================
-  // 💻 واجهة الإدارة المحمية 
+  // 💻 واجهة الإدارة المحمية
   // =========================================================================
   if (isAdminPanel) {
     if (!isAuthenticated) {
@@ -433,21 +437,18 @@ function App() {
   }
 
   // =========================================================================
-  // 💻 واجهة العميل (التحديث هنا للكتابة اليدوية للكميات)
+  // 💻 واجهة العميل (المتجر الحي) مع نظام الكميات المكتوب يدوياً
   // =========================================================================
   let processedProducts = products;
   if (searchQuery) { processedProducts = processedProducts.filter(p => p.name.includes(searchQuery)); } 
   else { processedProducts = processedProducts.filter(p => p.category === clientSub); }
-  if (sortOption === 'priceLow') { processedProducts.sort((a, b) => Number(a.price) - Number(b.price)); } 
-  else if (sortOption === 'priceHigh') { processedProducts.sort((a, b) => Number(b.price) - Number(a.price)); }
 
   return (
     <div className={`App client-theme ${showCart || selectedProduct || showWorkersHaraj ? 'no-scroll' : ''}`}>
-      <header className="royal-header">
-         <div className="logo-box">💧 <span>مَتجر</span> {settings.shop_name} ⚡</div>
-         <div className="search-bar-wrapper"><input placeholder="🔍 ابحث عن أي منتج..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} /></div>
-         <button className="worker-haraj-btn" onClick={() => {setShowWorkersHaraj(true);}}>👷‍♂️ <span className="hide-mobile">العمال</span></button>
-         <button className="open-cart-large desktop-only" onClick={() => setShowCart(true)}>🛒 السلة <span>{cart.length}</span></button>
+      <header className="royal-header" style={{boxShadow: '0 4px 15px rgba(0,0,0,0.1)'}}>
+         <div className="logo-box">💧 <span>مَتجر</span> {settings.shop_name || 'تشاطيب'} ⚡</div>
+         <div className="search-bar-wrapper"><input placeholder="🔍 ابحث عن أي منتج..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} style={{borderRadius:'20px', padding:'10px 15px'}} /></div>
+         <button className="open-cart-large desktop-only" onClick={() => setShowCart(true)} style={{borderRadius:'20px'}}>🛒 السلة <span style={{background:'var(--gold)', color:'#000', padding:'2px 8px', borderRadius:'10px', marginLeft:'5px'}}>{cart.length}</span></button>
       </header>
       
       {!searchQuery && (
@@ -458,35 +459,35 @@ function App() {
       )}
       
       <div className="gallery-container">
-        {processedProducts.length === 0 ? (<div className="empty-state"><h3>لم نتمكن من إيجاد منتجات هنا.</h3></div>) : (
+        {processedProducts.length === 0 ? (<div className="empty-state"><h3>لا توجد منتجات هنا حالياً.</h3></div>) : (
           <div className="p-grid-royal">
             {processedProducts.map(product => (
-              <div key={product.id} className="royal-p-card" onClick={() => setSelectedProduct(product)}>
+              <div key={product.id} className="royal-p-card" style={{borderRadius:'15px', overflow:'hidden', boxShadow:'0 5px 15px rgba(0,0,0,0.05)'}} onClick={() => setSelectedProduct(product)}>
                 {product.out_of_stock && <div className="sold-tag">نفدت الكمية</div>}
                 <div className="p-img-box"><img src={product.image || 'https://via.placeholder.com/150'} alt={product.name} /></div>
-                <div className="p-info-box">
-                  <h4>{product.name}</h4>
-                  <div className="price-area"><span className="now-price">{product.price} ر.س</span></div>
-                  <div className="action-area">
-                    {/* 🌟 تعديل هنا: إضافة حقل كتابة يدوية بدلاً من span العادي */}
+                <div className="p-info-box" style={{padding:'15px'}}>
+                  <h4 style={{fontSize:'1.1rem', marginBottom:'10px'}}>{product.name}</h4>
+                  <div className="price-area" style={{marginBottom:'15px'}}><span className="now-price" style={{fontSize:'1.2rem', color:'var(--green)', fontWeight:'bold'}}>{product.price} ر.س</span></div>
+                  
+                  {/* 🌟 التحكم بالكمية والكتابة اليدوية الأنيقة للمنتجات */}
+                  <div className="action-area" style={{display:'flex', justifyContent:'space-between', alignItems:'center', gap:'10px'}}>
                     {!product.out_of_stock && (
-                      <div className="qty-controls" onClick={e => e.stopPropagation()}>
-                        <button onClick={() => handleProductQuantityChange(product.id, 1)}>+</button>
+                      <div className="qty-controls" onClick={e => e.stopPropagation()} style={{display:'flex', alignItems:'center', background:'#f5f6fa', borderRadius:'8px', padding:'5px'}}>
+                        <button onClick={() => handleProductQuantityChange(product.id, 1)} style={{border:'none', background:'#fff', width:'30px', height:'30px', borderRadius:'5px', cursor:'pointer', fontSize:'1.2rem', boxShadow:'0 2px 5px rgba(0,0,0,0.1)'}}>+</button>
                         <input 
-                          type="number" 
-                          min="1" 
+                          type="number" min="1" 
                           value={itemQtys[product.id] || 1} 
-                          onChange={(e) => {
-                            const val = parseInt(e.target.value);
-                            if (!isNaN(val) && val > 0) setItemQtys(prev => ({ ...prev, [product.id]: val }));
-                          }}
-                          style={{width: '40px', textAlign: 'center', fontWeight: 'bold', background: 'transparent', border: 'none', margin: '0 5px'}}
+                          onChange={(e) => { const val = parseInt(e.target.value); if (!isNaN(val) && val > 0) setItemQtys(prev => ({ ...prev, [product.id]: val })); }}
+                          style={{width: '40px', textAlign: 'center', fontWeight: 'bold', background: 'transparent', border: 'none', outline:'none', fontSize:'1.1rem'}}
                         />
-                        <button onClick={() => handleProductQuantityChange(product.id, -1)}>-</button>
+                        <button onClick={() => handleProductQuantityChange(product.id, -1)} style={{border:'none', background:'#fff', width:'30px', height:'30px', borderRadius:'5px', cursor:'pointer', fontSize:'1.2rem', boxShadow:'0 2px 5px rgba(0,0,0,0.1)'}}>-</button>
                       </div>
                     )}
-                    <button className={`add-btn-p ${product.out_of_stock ? 'disabled' : ''}`} disabled={product.out_of_stock} onClick={(e) => { e.stopPropagation(); if (!product.out_of_stock) { addToCart(product); } }}>{product.out_of_stock ? 'غير متوفر' : 'أضف للسلة 🛒'}</button>
+                    <button className={`add-btn-p ${product.out_of_stock ? 'disabled' : ''}`} disabled={product.out_of_stock} onClick={(e) => { e.stopPropagation(); if (!product.out_of_stock) { addToCart(product); } }} style={{flex:'1', background: product.out_of_stock ? '#ccc' : 'var(--navy)', color:'#fff', border:'none', padding:'10px', borderRadius:'8px', fontWeight:'bold', cursor: product.out_of_stock ? 'not-allowed' : 'pointer'}}>
+                      {product.out_of_stock ? 'غير متوفر' : 'أضف للسلة 🛒'}
+                    </button>
                   </div>
+
                 </div>
               </div>
             ))}
@@ -497,6 +498,7 @@ function App() {
       <button className="floating-wa-btn" onClick={() => window.open(`https://wa.me/${settings.phone}`)}>💬</button>
       {cart.length > 0 && (<div className="mobile-sticky-cart" onClick={() => setShowCart(true)}><div className="m-cart-info">🛒 في السلة: <b>{cart.length}</b></div><div className="m-cart-total">{cart.reduce((sum, item) => sum + (item.price * item.qty), 0)} ر.س</div></div>)}
 
+      {/* 🌟 النافذة المنبثقة لتفاصيل المنتج */}
       {selectedProduct && (
         <div className="product-modal-overlay" onClick={() => setSelectedProduct(null)}>
           <div className="product-modal-content fade-in-up" onClick={e => e.stopPropagation()}>
@@ -506,64 +508,79 @@ function App() {
               <div className="m-details-side">
                 <h2>{selectedProduct.name}</h2>
                 <div className="m-price-box"><span className="m-now">{selectedProduct.price} ر.س</span></div>
-                <div className="m-desc-box"><h3>المواصفات:</h3><div className="m-desc">{selectedProduct.details || 'لا توجد تفاصيل.'}</div></div>
-                {!selectedProduct.out_of_stock ? (<button className="m-add-btn" onClick={() => addToCart(selectedProduct)}>إضافة للسلة 🛒</button>) : (<button className="m-add-btn disabled" disabled>🚫 نفدت</button>)}
+                <div className="m-desc-box"><h3>المواصفات:</h3><div className="m-desc">{selectedProduct.details || 'لا توجد تفاصيل إضافية لهذا المنتج.'}</div></div>
+                
+                {/* إضافة التحكم بالكمية داخل نافذة تفاصيل المنتج أيضاً */}
+                {!selectedProduct.out_of_stock && (
+                  <div className="qty-controls" style={{display:'flex', alignItems:'center', background:'#f5f6fa', borderRadius:'8px', padding:'10px', marginBottom:'15px', justifyContent:'center'}}>
+                    <button onClick={() => handleProductQuantityChange(selectedProduct.id, 1)} style={{border:'none', background:'#fff', width:'40px', height:'40px', borderRadius:'5px', cursor:'pointer', fontSize:'1.5rem', boxShadow:'0 2px 5px rgba(0,0,0,0.1)'}}>+</button>
+                    <input type="number" min="1" value={itemQtys[selectedProduct.id] || 1} onChange={(e) => { const val = parseInt(e.target.value); if (!isNaN(val) && val > 0) setItemQtys(prev => ({ ...prev, [selectedProduct.id]: val })); }} style={{width: '60px', textAlign: 'center', fontWeight: 'bold', background: 'transparent', border: 'none', outline:'none', fontSize:'1.3rem'}}/>
+                    <button onClick={() => handleProductQuantityChange(selectedProduct.id, -1)} style={{border:'none', background:'#fff', width:'40px', height:'40px', borderRadius:'5px', cursor:'pointer', fontSize:'1.5rem', boxShadow:'0 2px 5px rgba(0,0,0,0.1)'}}>-</button>
+                  </div>
+                )}
+                
+                {!selectedProduct.out_of_stock ? (<button className="m-add-btn" onClick={() => addToCart(selectedProduct)} style={{width:'100%', padding:'15px', fontSize:'1.2rem'}}>إضافة للسلة 🛒</button>) : (<button className="m-add-btn disabled" disabled style={{width:'100%', padding:'15px', fontSize:'1.2rem', background:'#ccc'}}>🚫 نفدت الكمية</button>)}
               </div>
             </div>
           </div>
         </div>
       )}
-      
+
+      {/* 🌟 سلة المشتريات الأنيقة والكاملة */}
       {showCart && (
-        <div className={`cart-overlay open`}>
-          <div className="cart-inner-container-large fade-in-up">
-            <div className="cart-header-fixed"><h2>سلة المشتريات الخاصة بك 🛒</h2><button className="close-btn-x" onClick={() => setShowCart(false)}>✕</button></div>
+        <div className="cart-overlay open" style={{background:'rgba(0,0,0,0.6)', backdropFilter:'blur(5px)'}}>
+          <div className="cart-inner-container-large fade-in-up" style={{borderRadius:'20px 20px 0 0', overflow:'hidden'}}>
+            <div className="cart-header-fixed" style={{background:'var(--navy)', color:'#fff', padding:'20px'}}>
+              <h2 style={{margin:0, fontSize:'1.3rem'}}>سلة المشتريات الخاصة بك 🛒</h2>
+              <button className="close-btn-x" onClick={() => setShowCart(false)} style={{color:'#fff', fontSize:'1.5rem'}}>✕</button>
+            </div>
             
-            <div className="cart-products-scroll">
-              {cart.length === 0 && (<p className="empty-cart-msg">سلتك فارغة، تجول في المتجر وأضف منتجات!</p>)}
+            <div className="cart-products-scroll" style={{padding:'20px', background:'#f8f9fa'}}>
+              {cart.length === 0 && (<div style={{textAlign:'center', padding:'40px 0', color:'#888'}}><h3>سلتك فارغة حالياً</h3><p>تصفح المنتجات وأضف ما تحتاجه!</p></div>)}
+              
               {cart.map((item, index) => (
-                <div key={index} className="cart-product-row">
-                  <img src={item.image} alt="" className="cart-p-img" />
-                  <div className="cart-p-details">
-                    <div className="cart-p-title">{item.name}</div>
-                    {/* 🌟 تعديل هنا: إضافة حقل كتابة يدوية للكمية داخل السلة */}
-                    <div className="qty-controls-mini">
-                      <button onClick={() => updateCartItemQuantity(index, 1)}>+</button>
-                      <input 
-                        type="number" 
-                        min="1" 
-                        value={item.qty} 
-                        onChange={(e) => {
-                          const val = parseInt(e.target.value);
-                          if (!isNaN(val) && val > 0) {
-                            const newCart = [...cart];
-                            newCart[index].qty = val;
-                            setCart(newCart);
-                          }
-                        }}
-                        style={{width: '35px', textAlign: 'center', fontWeight: 'bold', background: 'transparent', border: '1px solid rgba(0,0,0,0.1)', borderRadius: '4px'}}
-                      />
-                      <button onClick={() => updateCartItemQuantity(index, -1)}>-</button>
+                <div key={index} className="cart-product-row" style={{background:'#fff', borderRadius:'12px', padding:'15px', marginBottom:'15px', boxShadow:'0 2px 8px rgba(0,0,0,0.05)', display:'flex', alignItems:'center', gap:'15px'}}>
+                  <img src={item.image} alt="" style={{width:'60px', height:'60px', objectFit:'cover', borderRadius:'8px'}} />
+                  <div style={{flex:'1'}}>
+                    <div style={{fontWeight:'bold', fontSize:'1.1rem', marginBottom:'10px', color:'var(--navy)'}}>{item.name}</div>
+                    
+                    {/* 🌟 التحكم بالكمية كتابةً داخل السلة */}
+                    <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
+                      <div style={{display:'flex', alignItems:'center', background:'#f5f6fa', borderRadius:'6px', padding:'3px'}}>
+                        <button onClick={() => updateCartItemQuantity(index, 1)} style={{border:'none', background:'#fff', width:'25px', height:'25px', borderRadius:'4px', cursor:'pointer'}}>+</button>
+                        <input 
+                          type="number" min="1" 
+                          value={item.qty} 
+                          onChange={(e) => { const val = parseInt(e.target.value); if (!isNaN(val) && val > 0) { const newCart = [...cart]; newCart[index].qty = val; setCart(newCart); } }}
+                          style={{width: '35px', textAlign: 'center', fontWeight: 'bold', border: 'none', background:'transparent', outline:'none'}}
+                        />
+                        <button onClick={() => updateCartItemQuantity(index, -1)} style={{border:'none', background:'#fff', width:'25px', height:'25px', borderRadius:'4px', cursor:'pointer'}}>-</button>
+                      </div>
+                      <span style={{color:'var(--green)', fontWeight:'bold'}}>{item.price * item.qty} ر.س</span>
                     </div>
                   </div>
-                  <div className="cart-item-total">{item.price * item.qty} ر.س</div>
                 </div>
               ))}
               
               {cart.length > 0 && (
-                <div className="customer-info-box">
-                  <h4 style={{color:'var(--navy)', marginBottom:'10px'}}>لتسهيل التواصل وتأكيد الطلب:</h4>
-                  <input type="text" placeholder="الاسم الكريم..." value={customerName} onChange={e => setCustomerName(e.target.value)} className="c-input"/>
-                  {/* 🌟 تعديل: إزالة كلمة "للواتساب" بناءً على طلبك */}
-                  <input type="tel" placeholder="رقم الجوال..." value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} className="c-input"/>
+                <div style={{background:'#fff', padding:'20px', borderRadius:'12px', boxShadow:'0 2px 8px rgba(0,0,0,0.05)', marginTop:'20px'}}>
+                  <h4 style={{color:'var(--navy)', marginBottom:'15px', borderBottom:'2px solid #eee', paddingBottom:'10px'}}>📍 لتسهيل التواصل وتأكيد الطلب:</h4>
+                  <input type="text" placeholder="الاسم الكريم (مثال: محمد عبدالله)" value={customerName} onChange={e => setCustomerName(e.target.value)} style={{width:'100%', padding:'12px', borderRadius:'8px', border:'1px solid #ccc', marginBottom:'10px', fontSize:'1rem', fontFamily:'inherit'}}/>
+                  <input type="tel" placeholder="رقم الجوال (مثال: 0500000000)" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} style={{width:'100%', padding:'12px', borderRadius:'8px', border:'1px solid #ccc', fontSize:'1rem', fontFamily:'inherit'}}/>
                 </div>
               )}
             </div>
             
             {cart.length > 0 && (
-              <div className="cart-floating-action">
-                <div className="total-gold-box" style={{marginBottom:'0'}}>الإجمالي: <span>{cart.reduce((sum, item) => sum + (item.price * item.qty), 0)}</span> ر.س</div>
-                <button className="btn-wa-confirm-giant" onClick={handleCustomerSubmitOrder}>إرسال الطلب واعتماده ✅</button>
+              <div style={{background:'#fff', padding:'20px', borderTop:'1px solid #eee', boxShadow:'0 -5px 15px rgba(0,0,0,0.05)'}}>
+                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'15px', fontSize:'1.2rem'}}>
+                  <b>الإجمالي المطلوب:</b>
+                  <b style={{color:'var(--green)', fontSize:'1.4rem'}}>{cart.reduce((sum, item) => sum + (item.price * item.qty), 0)} ر.س</b>
+                </div>
+                {/* 🌟 زر الإرسال المضبوط والذي يعطي استجابة فورية للعميل */}
+                <button onClick={handleCustomerSubmitOrder} style={{width:'100%', background:'#27ae60', color:'#fff', border:'none', padding:'15px', borderRadius:'10px', fontSize:'1.2rem', fontWeight:'bold', cursor:'pointer', display:'flex', justifyContent:'center', alignItems:'center', gap:'10px', boxShadow:'0 4px 10px rgba(39, 174, 96, 0.3)'}}>
+                  إرسال الطلب واعتماده ✅
+                </button>
               </div>
             )}
           </div>

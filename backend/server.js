@@ -7,8 +7,8 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
-// 🌟 الاتصال بقاعدة بيانات نيون (يجب أن يكون الرابط في Render باسم DATABASE_URL)
-const sql = postgres(process.env.DATABASE_URL, { ssl: 'require' });
+// 🌟 الاتصال بقاعدة بيانات نيون مع زيادة وقت الانتظار لتجنب الأخطاء
+const sql = postgres(process.env.DATABASE_URL, { ssl: 'require', connect_timeout: 15 });
 
 async function initDb() {
   try {
@@ -43,12 +43,13 @@ app.post('/api/orders', async (req, res) => {
     `;
     res.status(201).json(newOrder[0]);
   } catch (err) {
-    res.status(500).json({ error: "فشل في حفظ الطلب" });
+    console.error("Error Saving Order:", err.message);
+    res.status(500).json({ error: "فشل في حفظ الطلب في قاعدة البيانات" });
   }
 });
 
 // =========================================================
-// 🛒 باقي مسارات المتجر الأساسية ليعمل بدون مشاكل
+// 🛒 باقي مسارات المتجر الأساسية (منتجات، أقسام، عمال، الخ)
 // =========================================================
 app.get('/api/orders', async (req, res) => {
   try { res.json(await sql`SELECT * FROM orders ORDER BY created_at DESC`); } 
@@ -57,6 +58,11 @@ app.get('/api/orders', async (req, res) => {
 
 app.delete('/api/orders/:id', async (req, res) => {
   try { await sql`DELETE FROM orders WHERE id = ${req.params.id}`; res.json({ success: true }); }
+  catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/orders/:id/complete', async (req, res) => {
+  try { await sql`UPDATE orders SET status = 'مكتمل' WHERE id = ${req.params.id}`; res.json({ success: true }); }
   catch(e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -88,7 +94,7 @@ app.get('/api/settings', async (req, res) => {
   catch(e) { res.status(500).json({}); }
 });
 
-// مسارات الكاشير والمخزون
+// مسار الكاشير وخصم المخزون
 app.post('/api/pos/checkout', async (req, res) => {
   try {
     const { cart } = req.body;
@@ -97,11 +103,6 @@ app.post('/api/pos/checkout', async (req, res) => {
     }
     res.json({ success: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
-});
-
-app.put('/api/orders/:id/complete', async (req, res) => {
-  try { await sql`UPDATE orders SET status = 'مكتمل' WHERE id = ${req.params.id}`; res.json({ success: true }); }
-  catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 const PORT = process.env.PORT || 10000;
