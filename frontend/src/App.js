@@ -1,5 +1,6 @@
 /* eslint-disable */
 import React, { useState, useEffect } from 'react';
+import Swal from 'sweetalert2'; // 🌟 إضافة مكتبة الرسائل المنبثقة
 import './App.css';
 
 const API_URL = 'https://drop-and-spark-1.onrender.com/api';
@@ -113,7 +114,7 @@ function App() {
     } catch (error) {}
   };
 
-  // 🌟 إرسال طلب العميل للمتجر (مع رسالة الشكر والإغلاق التلقائي)
+  // 🌟 إرسال طلب العميل للمتجر (معدل: تم حذف التوجيه للواتساب وإضافة الرسالة المنبثقة)
   const handleCustomerSubmitOrder = async () => {
     if (cart.length === 0) return setAlert("⚠️ السلة فارغة");
     if (!customerName || !customerPhone) return setAlert("⚠️ الرجاء إدخال الاسم ورقم الجوال لتسهيل التواصل");
@@ -127,20 +128,25 @@ function App() {
         body: JSON.stringify({ customer_name: customerName, customer_phone: customerPhone, cart_data: cart, total: totalAmount })
       });
       
-      const newOrder = await res.json();
-      
-      let message = `*طلب جديد من المتجر* 🛒\n*رقم الطلب للاعتماد: #${newOrder.id}*\n*العميل:* ${customerName}\n*الجوال:* ${customerPhone}\n\n`; 
-      cart.forEach(c => { message += `▪️ ${c.name}\n   الكمية: ${c.qty} | السعر: ${c.price} ر.س\n`; }); 
-      message += `\n*الإجمالي: ${totalAmount} ر.س*`;
-      
-      window.open(`https://wa.me/${settings.phone}?text=${encodeURIComponent(message)}`);
-      
-      // إظهار رسالة الشكر، تصفير السلة، وإغلاقها تلقائياً ليبقى في المتجر
-      setAlert("🎉 شكراً لكم على ثقتكم.. سيتم التواصل معكم في أقرب وقت ممكن لتأكيد طلبكم.");
-      setCart([]);
-      setCustomerName('');
-      setCustomerPhone('');
-      setShowCart(false); 
+      if(res.ok) {
+        // إظهار رسالة الشكر المنبثقة للعميل
+        Swal.fire({
+          icon: 'success',
+          title: 'شكراً لكم على ثقتكم!',
+          text: 'تم استلام طلبكم بنجاح وسنقوم بالتواصل معكم في أقرب وقت ممكن.',
+          confirmButtonColor: 'var(--green)',
+          confirmButtonText: 'حسناً'
+        }).then(() => {
+           // تصفير السلة، إغلاقها تلقائياً بعد الضغط على "حسناً"
+           setCart([]);
+           setCustomerName('');
+           setCustomerPhone('');
+           setShowCart(false);
+           fetchAllData(); // تحديث البيانات ليظهر الطلب في الإدارة فوراً
+        });
+      } else {
+         setAlert("❌ حدث خطأ أثناء إرسال الطلب.");
+      }
       
     } catch (e) {
       setAlert("❌ حدث خطأ في الاتصال");
@@ -524,7 +530,8 @@ function App() {
                 <div className="customer-info-box">
                   <h4 style={{color:'var(--navy)', marginBottom:'10px'}}>لتسهيل التواصل وتأكيد الطلب:</h4>
                   <input type="text" placeholder="الاسم الكريم..." value={customerName} onChange={e => setCustomerName(e.target.value)} className="c-input"/>
-                  <input type="tel" placeholder="رقم الجوال للواتساب..." value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} className="c-input"/>
+                  {/* تم حذف كلمة "للواتساب" بناءً على طلبك */}
+                  <input type="tel" placeholder="رقم الجوال..." value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} className="c-input"/>
                 </div>
               )}
             </div>
