@@ -301,3 +301,64 @@ button { font-family: inherit; cursor: pointer; }
 .worker-public-card { transition: transform 0.3s; }
 .worker-public-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important; }
 .workers-filters select { outline: none; font-weight: bold; color: var(--navy); }
+/* ========================================================= */
+/* 📱 تعديلات مخصصة لشاشات الجوال لتجربة استخدام احترافية */
+/* ========================================================= */
+@media (max-width: 768px) {
+  /* منع الشاشة من التحرك يميناً ويساراً (منع الاهتزاز) */
+  body, html {
+    overflow-x: hidden;
+  }
+
+  /* جعل بطاقات المنتجات تظهر بشكل واضح (منتج واحد أو اثنين في كل سطر حسب العرض) */
+  .p-grid-royal {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)) !important;
+    gap: 15px !important;
+    padding: 10px !important;
+  }
+
+  /* تكبير الخطوط لتكون مقروءة بدون عمل Zoom */
+  .p-info-box h4 {
+    font-size: 1.2rem !important;
+  }
+  .now-price {
+    font-size: 1.3rem !important;
+  }
+
+  /* جعل نافذة (تفاصيل المنتج) تملأ شاشة الجوال بالكامل عند الضغط عليها */
+  .product-modal-content {
+    width: 95% !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+    border-radius: 15px !important;
+    margin-top: 20px;
+  }
+  
+  .m-img-side img {
+    max-height: 220px !important; /* تصغير الصورة قليلاً لإعطاء مساحة للنص */
+  }
+
+  /* تكبير أزرار الكمية لتناسب اللمس بالإصبع */
+  .qty-controls button {
+    width: 40px !important;
+    height: 40px !important;
+    font-size: 1.5rem !important;
+  }
+  .qty-controls input {
+    font-size: 1.3rem !important;
+  }
+
+  /* جعل السلة تملأ الشاشة بالكامل للوضوح التام */
+  .cart-inner-container-large {
+    width: 100% !important;
+    height: 100vh !important;
+    border-radius: 0 !important;
+    border: none !important;
+  }
+  
+  /* تكبير زر (إرسال الطلب) ليكون واضحاً وسهل اللمس */
+  .cart-inner-container-large button {
+    padding: 18px !important;
+    font-size: 1.3rem !important;
+  }
+}
