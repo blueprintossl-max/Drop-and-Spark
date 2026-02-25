@@ -297,3 +297,7 @@ button { font-family: inherit; cursor: pointer; }
   /* السلة في الجوال تأخذ الشاشة كاملة لتكون ضخمة */
   .cart-inner-container-large { width: 100%; height: 100vh; border-radius: 0; border: none; }
 }
+/* تنسيقات إضافية لواجهة العمال للعميل */
+.worker-public-card { transition: transform 0.3s; }
+.worker-public-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important; }
+.workers-filters select { outline: none; font-weight: bold; color: var(--navy); }
