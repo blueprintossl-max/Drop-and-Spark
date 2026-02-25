@@ -1,0 +1,71 @@
+[33m18b3a64[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m HEAD@{0}: reset: moving to 18b3a64
+[33m19d1ded[m HEAD@{1}: commit: تحديث سلة المشتريات وإضافة رسالة الشكر المنبثقة
+[33m4fab57a[m HEAD@{2}: commit: استعادة النظام الكامل 1200 سطر وإصلاح شاشات الإدارة والذيب الأخضر
+[33m4e7c7c2[m HEAD@{3}: commit: استعادة النظام الكامل 1200 سطر وإصلاح شاشات الإدارة
+[33m7eb9e1f[m HEAD@{4}: commit: استعادة النظام الشامل 1200 سطر وإصلاح شاشات الإدارة والذيب الأخضر
+[33m18b3a64[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m HEAD@{5}: commit: استعادة الكود الكامل 600 سطر وإصلاح طبقات الرسائل
+[33mcc76290[m HEAD@{6}: commit: تطبيق معايير الأمان القصوى وتشغيل السيرفر أولاً
+[33m3e0fc72[m HEAD@{7}: commit: الترقيعة العظيمة: الرابط مباشر وتشغيل المنافذ أولاً
+[33m7cd7cdb[m HEAD@{8}: commit: بناء قاعدة البيانات الجذري وإنشاء جداول الإدارة
+[33m9b2e9ab[m HEAD@{9}: commit: الإصلاح الشامل والنهائي: استعادة الواجهة المفقودة، الكتابة اليدوية للكميات، وإصلاح زر السلة
+[33m36e664f[m HEAD@{10}: commit: الإصلاح الشامل: السلة التفاعلية، تصحيح مسار السيرفر، وميزة الكتابة اليدوية
+[33m1b8028b[m HEAD@{11}: commit: التحديث الشامل والنهائي لمتجر تشاطيب
+[33m3c5e2dc[m HEAD@{12}: commit: تحديث متجر تشاطيب النهائي: رسالة الشكر ونظام الطلبات
+[33mb7ea594[m HEAD@{13}: commit: إضافة مسار الطلبات الجديد لقاعدة بيانات نيون
+[33mbd4fc80[m HEAD@{14}: commit: تحديث سلة المشتريات وإضافة رسالة الشكر المنبثقة
+[33m46b1c03[m HEAD@{15}: commit: Add VIP Floating Cart, Auto-close, Refund System, and Order Notifications
+[33m5e400f2[m HEAD@{16}: commit: Full POS Order Management System with Pin Hiding and Categories
+[33m525b75b[m HEAD@{17}: commit: Add Dynamic User Edit Feature and Protect Current Session
+[33m4801daa[m HEAD@{18}: commit: Add Full POS Cashier System, Manual Secure Login, and Bulk Inventory
+[33mc0578dc[m HEAD@{19}: commit: Implement Manual Login, Strong Permissions Firewall, and Bulk Inventory Input
+[33mb14a5a6[m HEAD@{20}: commit: Deploy Clean and Fully Expanded ERP Code
+[33m6a75ad0[m HEAD@{21}: commit: Wake up Vercel to build the fixed codes
+[33mefec3e7[m HEAD@{22}: commit: Remove invalid comment from backend JSON and fix frontend
+[33mc5d5d11[m HEAD@{23}: commit: Fix JSON syntax and Force Update App
+[33mf0b522e[m HEAD@{24}: commit: Force Vercel to trigger a new build
+[33m335a9cc[m HEAD@{25}: commit: Fix package.json JSON syntax error
+[33m6ddb43e[m HEAD@{26}: commit: Revert package.json and rely on Vercel Dashboard CI=false
+[33m2d33639[m HEAD@{27}: commit: Force Vercel Build with CI=false to deploy ERP update
+[33m026fb26[m HEAD@{28}: commit: Deploy Fully Expanded Vertical ERP Code with Multi-User Support and Hierarchical Inventory
+[33m29adb7c[m HEAD@{29}: commit: Deploy Fully Expanded Code with Worker Ratings, Best Seller Badges, and Full Deletion Fixes
+[33m7d41f4a[m HEAD@{30}: commit: Deploy Final Unminified ERP with Strictly Filtered Optional Workers
+[33m81db72e[m HEAD@{31}: commit: Deploy Fully Expanded Code and Fix Database Sync for Workers
+[33m2ab1ddf[m HEAD@{32}: commit: Deploy Full Unminified System: ERP, Haraj, Modals, and Fixes
+[33mea8fd62[m HEAD@{33}: commit: Implement Details Modal, Divided Reports, and Top 10 E-commerce Features
+[33m21afefc[m HEAD@{34}: commit: Bypass Vercel Strict Linter to Deploy Full ERP System
+[33m699381a[m HEAD@{35}: commit: Bypass Vercel Strict Linter to Deploy ERP System
+[33ma2dedeb[m HEAD@{36}: commit: Implement Full ERP Structure: Sections, Inventory, and Visual Reports
+[33md2d736b[m HEAD@{37}: commit: Fix Category Mirroring Bug, Restore Full Lines, and Add Premium Glassmorphism Login
+[33m34562b2[m HEAD@{38}: commit: Convert Admin to True Folder Hierarchy System (Main -> Sub -> Products)
+[33m0a5d39c[m HEAD@{39}: commit: Convert to Mega Store: Nested categories, compact no-scroll UI, and delete tools
+[33mdcffd55[m HEAD@{40}: commit: Fix invisible text colors and add Dropdown Icon Select
+[33mfaa183f[m HEAD@{41}: commit: إضافة درع الحماية من الانهيار والسماح بإضافة الأقسام بأمان
+[33m994512f[m HEAD@{42}: commit: Update server.js to allow adding dynamic categories
+[33m39c62cc[m HEAD@{43}: commit: Fix Vercel build error (ESLint ignore)
+[33m6b3cd13[m HEAD@{44}: commit: Final Update: Remove Al-Malakiya and add colorful dashboard
+[33mcf686c5[m HEAD@{45}: commit: ترقية الإدارة لنظام احترافي مع تقارير مجدولة وأيقونات للأقسام ونقل المنتجات
+[33m9a7670f[m HEAD@{46}: commit: إضافة زر التواصل عبر الواتساب العائم بالتصميم الجديد
+[33m761b6f7[m HEAD@{47}: commit: تفعيل بيئة العمل السياقية للإدارة واستقلال الأقسام للعميل
+[33m9d910db[m HEAD@{48}: commit: إضافة نظام الأقسام الديناميكي وتصميم الجوال المزدوج
+[33mc3498bc[m HEAD@{49}: commit: الإصدار الماسي: ضغط الصور التلقائي وإصلاح السرعة
+[33ma06e3f6[m HEAD@{50}: commit: إصلاح جذري لسرعة تحميل المنتجات وتحسين الأداء
+[33m7139508[m HEAD@{51}: commit: تحديث السلة الإبداعي للموبايل وأزرار الكمية التفاعلية
+[33m1790f28[m HEAD@{52}: commit: إضافة أزرار الكمية الإبداعية والسلة الثابتة والمخزون السريع
+[33md619c0e[m HEAD@{53}: commit: إضافة السعر القديم وشعار العرض الخاص المطور
+[33m1c7a13d[m HEAD@{54}: commit: الإصدار الماسي - إصلاح شامل لملف التنسيق CSS
+[33m58c2e56[m HEAD@{55}: commit: إطلاق النظام الإمبراطوري المتكامل - 30/70 والسلة العملاقة والإدارة الذاتية
+[33m183fd94[m HEAD@{56}: commit: الإصدار الذهبي - فصل 30/70 وحل تباعد المنتجات وتفعيل الإعدادات
+[33md554591[m HEAD@{57}: commit: إطلاق النظام التفاعلي - حل ألوان الأزرار والإشعارات
+[33m14d8209[m HEAD@{58}: commit: إطلاق النظام الملكي المتكامل - السلة والمخزون والعروض النارية
+[33mb0cfefa[m HEAD@{59}: commit: إطلاق لوحة الإدارة المنقسمة مع البحث والفلترة
+[33m01ea12f[m HEAD@{60}: commit: إطلاق النظام التسويقي الملكي المتكامل
+[33mf961f14[m HEAD@{61}: commit: إطلاق النظام التجاري الملكي مع السلة وواتساب
+[33mc756e42[m HEAD@{62}: commit: إطلاق النظام الملكي وفصل الإدارة
+[33m17f1771[m HEAD@{63}: commit: تفعيل الرابط السري وتصوير المعرض الملكي
+[33m9002068[m HEAD@{64}: commit: إطلاق النسخة الفاخرة مع نظام التنبيهات ورفع الصور
+[33ma646103[m HEAD@{65}: commit: الإطلاق النهائي للمتجر العالمي
+[33m40649db[m HEAD@{66}: commit: إطلاق نظام التصوير والتقارير النهائي
+[33m3130dca[m HEAD@{67}: commit: تفعيل الكاميرا والرفع المباشر
+[33m8aa0207[m HEAD@{68}: commit: إطلاق النسخة الشاملة لقطرة وشرارة
+[33mda7127f[m HEAD@{69}: commit: تفعيل نظام التقارير والحذف والصور
+[33m7461845[m HEAD@{70}: commit: 
