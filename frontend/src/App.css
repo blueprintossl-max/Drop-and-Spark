@@ -362,3 +362,79 @@ button { font-family: inherit; cursor: pointer; }
     font-size: 1.3rem !important;
   }
 }
+/* ========================================================= */
+/* 📱 الإصلاح الجذري لحجم شاشة الجوال (منع التصغير التلقائي) */
+/* ========================================================= */
+
+/* 1. إجبار الموقع على الالتزام بعرض الشاشة ومنع التمدد الجانبي الذي يسبب التصغير */
+html, body, #root, .App {
+  max-width: 100vw !important;
+  overflow-x: hidden !important;
+  margin: 0;
+  padding: 0;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box !important;
+}
+
+/* 2. ترتيب الشريط العلوي والمنتجات ليطابق حجم الجوال 100% */
+@media (max-width: 800px) {
+  /* ترتيب الشعار، البحث، والأزرار لتكون عمودية ولا تكسر عرض الشاشة */
+  .royal-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 15px !important;
+    padding: 15px !important;
+  }
+  
+  .search-bar-wrapper {
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* جعل أزرار العمال والسلة متجاورة وتأخذ عرض الشاشة بالكامل */
+  .royal-header > div:last-child {
+    display: flex !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    gap: 10px !important;
+  }
+
+  .open-cart-large {
+    flex: 1 !important;
+    margin: 0 !important;
+    text-align: center !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    font-size: 1rem !important;
+    padding: 10px !important;
+  }
+
+  /* جعل المنتجات تظهر بحجم كبير وواضح (منتجين في كل سطر) */
+  .p-grid-royal {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+    padding: 10px !important;
+  }
+
+  .p-info-box h4 {
+    font-size: 1.1rem !important;
+  }
+  
+  .now-price {
+    font-size: 1.2rem !important;
+  }
+
+  /* شريط الأقسام: سحب سلس باللمس بدلاً من التصغير */
+  .client-main-bar, .client-sub-bar {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  .client-main-bar button, .client-sub-bar button {
+    white-space: nowrap !important;
+  }
+}
