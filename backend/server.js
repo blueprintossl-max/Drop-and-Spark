@@ -6,9 +6,30 @@ require('dotenv').config();
 const app = express();
 
 // إعدادات الكورس والسماح بالبيانات الكبيرة للصور
-app.use(cors());
+
+// السماح لجميع الواجهات بالاتصال بالسيرفر (لفك الحظر عن Vercel)
+app.use(cors({
+  origin: '*', 
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));app.use(express.json({ limit: '50mb' }));
+const express = require('express');
+const cors = require('cors');
+const postgres = require('postgres');
+require('dotenv').config();
+
+const app = express();
+
+// إعدادات الكورس (CORS) لفك الحظر عن Vercel والسماح بمرور بيانات الدخول
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json({ limit: '50mb' }));
 
+// متغير اتصال قاعدة البيانات
 // متغير اتصال قاعدة البيانات
 let sql;
 
