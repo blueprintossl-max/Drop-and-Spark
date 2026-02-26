@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Swal from 'sweetalert2'; 
 import './App.css';
 
-const API_URL = 'https://drop-and-spark.onrender.com/api';
+const API_URL = 'https://drop-and-spark-1.onrender.com';
 
 function App() {
   // ==============================
