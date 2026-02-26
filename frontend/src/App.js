@@ -3,8 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Swal from 'sweetalert2'; 
 import './App.css';
 
-const API_URL ='https://drop-and-spark.onrender.com';
-
+const API_URL = 'https://drop-and-spark.onrender.com';
 function App() {
   // ==============================
   // 1. تعريف المتغيرات (State)
