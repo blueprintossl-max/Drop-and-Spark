@@ -52,6 +52,7 @@ function App() {
   const [workerForm, setWorkerForm] = useState({ name: '', phone: '', details: '', image: '', region: '', city: '', profession: '', rating: '5.0', is_busy: false });
   const [editingWorker, setEditingWorker] = useState(null);
   const [newAdminForm, setNewAdminForm] = useState({ username: '', pin: '', role: 'موظف' });
+  const [editingAdmin, setEditingAdmin] = useState(null); // لإدارة تعديل الموظف
 
   // واجهة العميل (Storefront)
   const [customerName, setCustomerName] = useState('');
@@ -112,7 +113,7 @@ function App() {
   };
 
   // ==========================================
-  // 3. دوال العمليات الحيوية (Handlers)
+  // 3. دوال العمليات الحيوية (Handlers) - تم الإصلاح والتحديث
   // ==========================================
 
   // --- نظام الدخول ---
@@ -172,27 +173,40 @@ function App() {
     }
   };
 
+  // ✅ تم الإصلاح: حفظ المنتجات مع تحويل الأرقام وظهور الإشعار
   const handleSaveProduct = async () => {
-    if (!formData.name || !activeSubCat) return setAlert("⚠️ يرجى اختيار القسم وإدخال اسم المنتج");
+    if (!formData.name || !activeSubCat) return Swal.fire('تنبيه', 'يرجى اختيار القسم وإدخال اسم المنتج', 'warning');
+    
     const method = editingItem ? 'PUT' : 'POST';
     const url = editingItem ? `${API_URL}/api/products/${editingItem.id}` : `${API_URL}/api/products`;
     
-    // دمج الشركة المصنعة مع التفاصيل إذا لزم الأمر أو حفظها
+    // دمج الشركة المصنعة مع التفاصيل
     const fullDetails = formData.manufacturer ? `الشركة: ${formData.manufacturer}\n${formData.details}` : formData.details;
+
+    // تحويل القيم إلى أرقام لتوافق قاعدة بيانات PostgreSQL
+    const payload = {
+      ...formData,
+      price: formData.price ? parseFloat(formData.price) : 0,
+      old_price: formData.old_price ? parseFloat(formData.old_price) : 0,
+      stock: formData.stock ? parseInt(formData.stock) : 0,
+      details: fullDetails,
+      category: activeSubCat.name,
+      modified_by: currentUser.username
+    };
 
     try {
       const res = await fetch(url, { 
         method, 
         headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ ...formData, details: fullDetails, category: activeSubCat.name, modified_by: currentUser.username }) 
+        body: JSON.stringify(payload) 
       });
       if (res.ok) {
-        Swal.fire('تم الحفظ!', 'تم حفظ المنتج في القسم الفرعي بنجاح', 'success');
+        Swal.fire('تم الحفظ!', 'تم حفظ المنتج في القسم الفرعي بنجاح وسيظهر للعملاء', 'success');
         setEditingItem(null);
         setFormData({ name: '', price: '', old_price: '', stock: '', details: '', manufacturer: '', image: '', is_sale: false, out_of_stock: false });
         fetchAllData();
-      }
-    } catch (e) { setAlert("❌ خطأ في حفظ المنتج"); }
+      } else { Swal.fire('خطأ', 'فشل الحفظ في قاعدة البيانات', 'error'); }
+    } catch (e) { Swal.fire('خطأ', 'مشكلة في الاتصال بالسيرفر', 'error'); }
   };
 
   const handleDeleteProduct = async (id) => {
@@ -202,9 +216,11 @@ function App() {
     }
   };
 
-  // --- إدارة العمال ---
+  // ✅ تم الإصلاح: حفظ العمال وجعل الصورة اختيارية
   const handleSaveWorker = async () => {
-    if (!workerForm.name || !workerForm.phone || !workerForm.region || !workerForm.city) return setAlert("⚠️ يرجى إكمال بيانات العامل الأساسية (الاسم، الجوال، المنطقة، المدينة)");
+    if (!workerForm.name || !workerForm.phone || !workerForm.region || !workerForm.city) {
+      return Swal.fire('تنبيه', 'يرجى إكمال بيانات العامل الأساسية (الاسم، الجوال، المنطقة، المدينة)', 'warning');
+    }
     const method = editingWorker ? 'PUT' : 'POST';
     const url = editingWorker ? `${API_URL}/api/workers/${editingWorker.id}` : `${API_URL}/api/workers`;
     try {
@@ -214,12 +230,12 @@ function App() {
         body: JSON.stringify({ ...workerForm, modified_by: currentUser.username })
       });
       if (res.ok) {
-        Swal.fire('نجاح', 'تم إضافة العامل وتصنيفه بنجاح', 'success');
+        Swal.fire('نجاح', 'تم حفظ بيانات العامل وتصنيفه بنجاح', 'success');
         setWorkerForm({ name: '', phone: '', details: '', image: '', region: '', city: '', profession: '', rating: '5.0', is_busy: false });
         setEditingWorker(null);
         fetchAllData();
-      }
-    } catch(e) { setAlert("❌ خطأ في الحفظ"); }
+      } else { Swal.fire('خطأ', 'لم يتم الحفظ في السيرفر', 'error'); }
+    } catch(e) { Swal.fire('خطأ', 'مشكلة في الاتصال', 'error'); }
   };
 
   const handleDeleteWorker = async (id) => {
@@ -229,23 +245,26 @@ function App() {
     }
   };
 
-  // --- إدارة الموظفين والصلاحيات ---
+  // ✅ تم الإصلاح: إدارة الموظفين مع زر التعديل
   const handleSaveAdmin = async () => {
-    if (!newAdminForm.username || !newAdminForm.pin) return setAlert("⚠️ بيانات الموظف ناقصة");
+    if (!newAdminForm.username || !newAdminForm.pin) return Swal.fire('تنبيه', 'بيانات الموظف ناقصة (الاسم والرمز السري)', 'warning');
+    const method = editingAdmin ? 'PUT' : 'POST';
+    const url = editingAdmin ? `${API_URL}/api/admins/${editingAdmin.id}` : `${API_URL}/api/admins`;
     try {
-      const res = await fetch(`${API_URL}/api/admins`, {
-        method: 'POST',
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newAdminForm)
       });
       if (res.ok) {
-        Swal.fire('تم!', 'تم إضافة الموظف بالنظام', 'success');
+        Swal.fire('تم!', editingAdmin ? 'تم تحديث بيانات الموظف بنجاح' : 'تم إضافة الموظف بالنظام', 'success');
         setNewAdminForm({ username: '', pin: '', role: 'موظف' });
+        setEditingAdmin(null);
         fetchAllData();
       } else {
-        setAlert("❌ هذا الاسم مسجل مسبقاً");
+        Swal.fire('خطأ', 'هذا الاسم قد يكون مسجلاً مسبقاً', 'error');
       }
-    } catch (e) { setAlert("❌ خطأ في الاتصال"); }
+    } catch (e) { Swal.fire('خطأ', 'خطأ في الاتصال بالسيرفر', 'error'); }
   };
 
   const handleDeleteAdmin = async (id, role) => {
@@ -253,13 +272,13 @@ function App() {
     if (role === 'مدير') {
       return Swal.fire('إجراء مرفوض', 'لا يمكنك حذف حساب يمتلك صلاحية "مدير" لحماية النظام!', 'error');
     }
-    if (window.confirm("هل أنت متأكد من حذف هذا الموظف؟")) {
+    if (window.confirm("هل أنت متأكد من سحب صلاحيات هذا الموظف وحذفه؟")) {
       await fetch(`${API_URL}/api/admins/${id}`, { method: 'DELETE' });
       fetchAllData();
     }
   };
 
-  // --- إعدادات المتجر ---
+  // ✅ تم الإصلاح: إعدادات المتجر (إظهار الإشعار)
   const handleSaveSettings = async () => {
     try {
       const res = await fetch(`${API_URL}/api/settings`, {
@@ -268,10 +287,10 @@ function App() {
         body: JSON.stringify(settings)
       });
       if (res.ok) {
-        Swal.fire('نجاح', 'تم تحديث اسم المتجر ورقم التواصل', 'success');
+        Swal.fire('نجاح', 'تم تحديث اسم المتجر ورقم التواصل بنجاح ✅', 'success');
         fetchAllData();
       }
-    } catch (e) { setAlert("❌ خطأ في الحفظ"); }
+    } catch (e) { Swal.fire('خطأ', 'فشل حفظ الإعدادات', 'error'); }
   };
 
   // --- الجرد اليدوي والكاشير ---
@@ -667,7 +686,7 @@ function App() {
                 <div style={{display: 'flex', gap: '20px', flexWrap: 'wrap'}}>
                   <div className="worker-images-upload" style={{flex: '0 0 150px'}}>
                     <div className="img-upload-box mb-20">
-                      {workerForm.image ? <img src={workerForm.image} alt="worker"/> : <div className="img-ph">صورة شخصية</div>}
+                      {workerForm.image ? <img src={workerForm.image} alt="worker"/> : <div className="img-ph">صورة (اختياري)</div>}
                       <label className="upload-label">رفع صورة <input type="file" onChange={(e) => handleImageUpload(e, 'worker')} style={{display:'none'}}/></label>
                     </div>
                   </div>
@@ -734,18 +753,19 @@ function App() {
             </div>
           )}
 
-          {/* 7. إدارة طاقم الموظفين (حماية المدير) */}
+          {/* 7. إدارة طاقم الموظفين (إضافة وتعديل) */}
           {adminView === 'users' && isManager && (
             <div className="panel-card fade-in">
               <h2>👥 طاقم الإدارة والصلاحيات</h2>
               <div className="add-row mb-20" style={{background:'#f9f9f9', padding:'20px', borderRadius:'10px'}}>
-                <input placeholder="اسم الموظف الجديد..." value={newAdminForm.username} onChange={e => setNewAdminForm({...newAdminForm, username: e.target.value})}/>
+                <input placeholder="اسم الموظف..." value={newAdminForm.username} onChange={e => setNewAdminForm({...newAdminForm, username: e.target.value})}/>
                 <input placeholder="الرمز السري..." type="text" value={newAdminForm.pin} onChange={e => setNewAdminForm({...newAdminForm, pin: e.target.value})}/>
                 <select value={newAdminForm.role} onChange={e => setNewAdminForm({...newAdminForm, role: e.target.value})} style={{padding:'12px', borderRadius:'8px'}}>
                   <option value="موظف">موظف (كاشير/جرد فقط)</option>
                   <option value="مدير">مدير (صلاحيات كاملة)</option>
                 </select>
-                <button className="add-btn" onClick={handleSaveAdmin}>إضافة وتفعيل</button>
+                <button className="add-btn" onClick={handleSaveAdmin}>{editingAdmin ? 'تحديث الموظف 🔄' : 'إضافة وتفعيل ➕'}</button>
+                {editingAdmin && <button className="del-btn-sq" onClick={() => { setEditingAdmin(null); setNewAdminForm({ username: '', pin: '', role: 'موظف' }); }}>إلغاء التعديل</button>}
               </div>
               <table className="pro-table">
                 <thead><tr><th>الاسم</th><th>الصلاحية</th><th>إجراء</th></tr></thead>
@@ -754,7 +774,10 @@ function App() {
                     <tr key={adminUser.id}>
                       <td>{adminUser.username} {adminUser.id === currentUser.id ? '(أنت)' : ''}</td>
                       <td><span className="sc-badge">{adminUser.role}</span></td>
-                      <td><button className="del-btn-sq" onClick={() => handleDeleteAdmin(adminUser.id, adminUser.role)}>إلغاء الصلاحية ❌</button></td>
+                      <td>
+                        <button className="add-btn" style={{marginRight:'5px', background:'#3498db'}} onClick={() => { setEditingAdmin(adminUser); setNewAdminForm({ username: adminUser.username, pin: adminUser.pin, role: adminUser.role }); }}>تعديل ✏️</button>
+                        <button className="del-btn-sq" onClick={() => handleDeleteAdmin(adminUser.id, adminUser.role)}>حذف ❌</button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
