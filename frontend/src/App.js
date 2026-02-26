@@ -3,8 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Swal from 'sweetalert2'; 
 import './App.css';
 
-const API_URL = 'https://drop-and-spark.onrender.com/api';
-
+const API_URL = 'https://drop-and-spark-1.onrender.com';
 function App() {
   // ==============================
   // 1. تعريف المتغيرات (State)
@@ -118,6 +117,28 @@ function App() {
     if (!loginUsername || !loginPin) return setAlert("⚠️ يرجى إدخال اسم المستخدم والرمز السري");
 
     try {
+      // الاتصال المباشر والآمن بقاعدة البيانات للتحقق
+      const response = await fetch(`${API_URL}/api/admin/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: loginUsername.trim(), pin: loginPin })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setCurrentUser(data.user);
+        setIsAuthenticated(true);
+        setAdminView('orders');
+        setAlert("✅ تم تسجيل الدخول بنجاح");
+      } else {
+        setAlert("❌ بيانات الدخول غير صحيحة");
+      }
+    } catch (error) {
+      console.error("Login Error:", error);
+      setAlert("❌ مشكلة في الاتصال بالسيرفر");
+    }
+  };
       // الاتصال المباشر والآمن بقاعدة البيانات للتحقق
       const response = await fetch(`${API_URL}/api/admin/login`, {
         method: 'POST',
