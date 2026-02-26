@@ -1,1 +1,1 @@
-DATABASE_URL=postgresql://neondb_owner:npg_sjUe7w8TEOYW@ep-restless-bird-aigrrkw6-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+postgresql://neondb_owner:npg_PbF1hXB4lWZN@ep-round-mountain-ai7aufop-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
