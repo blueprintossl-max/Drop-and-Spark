@@ -166,7 +166,7 @@ function App() {
       const res = await fetch(`${API_URL}/api/orders`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ customer_name: customerName, customer_phone: `${customerPhone} | دفع: ${paymentMethod} | موقع: ${customerLocation}`, cart_data: cart, total: totalAmount }) });
       if (res.ok) {
         const orderId = 'TSH-' + Math.floor(1000 + Math.random() * 9000);
-        Swal.fire({ title: '🎉 تم استلام طلبك بنجاح!', html: `رقم طلبك للمتابعة هو: <b style="color:var(--gold); font-size:1.5rem;">${orderId}</b><br><br>سنتواصل معك في أقرب وقت لتأكيد التوصيل. شكراً لثقتكم.`, icon: 'success', confirmButtonText: 'متابعة التسوق', position: 'center' });
+        Swal.fire({ title: '🎉 تم استلام طلبك بنجاح!', html: `رقم طلبك للمتابعة هو: <b style="color:var(--gold); font-size:1.5rem;">${orderId}</b><br><br>سنتواصل معك لتأكيد التوصيل. شكراً لثقتكم.`, icon: 'success', confirmButtonText: 'متابعة التسوق', position: 'center' });
         setCart([]); setCustomerName(''); setCustomerPhone(''); setCustomerLocation(''); setCheckoutStep(1); setShowCart(false); fetchAllData();
       }
     } catch (e) { Swal.fire({title:'خطأ', text:'تأكد من الاتصال بالإنترنت', icon:'error', position:'center'}); }
@@ -200,7 +200,7 @@ function App() {
   }
 
   // =========================================================================
-  // 💻 5. واجهة العميل (Storefront) - الإصدار الفاخر V 5.1 (Full Width & Red Prices)
+  // 💻 5. واجهة العميل (Storefront) - الإصدار الفاخر V 5.2 (السلة العملاقة)
   // =========================================================================
   let processedProducts = products;
   if (searchQuery) { processedProducts = processedProducts.filter(p => p.name.includes(searchQuery) || (p.details && p.details.includes(searchQuery))); } 
@@ -228,11 +228,16 @@ function App() {
         .marquee-container { background: #000; color: var(--gold); padding: 10px; font-weight: bold; font-size: 1rem; overflow: hidden; white-space: nowrap; border-top: 3px solid var(--gold); }
         .marquee-content { display: inline-block; animation: marquee 20s linear infinite; } @keyframes marquee { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
         
-        /* تصميم الشريط العلوي الجديد V5 (الضخم) */
+        /* تصميم الشريط العلوي الجديد */
         .royal-header { display: flex; flex-direction: column; padding: 25px 30px !important; gap: 20px; }
         .header-row-1 { display: flex; justify-content: space-between; align-items: center; width: 100%; }
-        .header-row-2 { display: flex; justify-content: center; flex-wrap: wrap; gap: 15px; width: 100%; }
-        .header-row-2 button { font-size: 1.15rem !important; padding: 12px 25px !important; border-radius: 30px !important; }
+        .header-row-2 { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 15px; width: 100%; }
+        .header-row-2 .open-cart-large { font-size: 1.15rem !important; padding: 12px 25px !important; border-radius: 30px !important; flex: 1; }
+        
+        /* 🛒 السلة العملاقة Mega Cart Button */
+        .mega-cart-btn { background: #ffffff; color: var(--navy); border: 4px solid var(--navy); font-weight: 900; font-size: 2.2rem !important; padding: 15px 40px !important; border-radius: 40px !important; box-shadow: 0 10px 25px rgba(0,0,0,0.2); transition: all 0.3s ease; flex: 2; min-width: 60%; display: flex; justify-content: center; align-items: center; cursor: pointer; }
+        .mega-cart-btn:hover { transform: scale(1.03); }
+        .mega-cart-badge { background: #e74c3c; color: #fff; padding: 5px 20px; border-radius: 20px; margin-left: 15px; font-weight: 900; font-size: 1.8rem; display: inline-block; animation: pulse 2s infinite; }
         
         /* تعديلات السعر الأحمر الضخم */
         .now-price { font-size: 2.2rem !important; font-weight: 900 !important; color: #e74c3c !important; }
@@ -251,7 +256,12 @@ function App() {
           .header-row-1 { flex-direction: column; gap: 15px; }
           .search-bar-wrapper { width: 100%; margin: 0 !important; }
           .search-bar-wrapper input { padding: 15px !important; font-size: 1.2rem !important; }
-          .header-row-2 button { flex: 1; min-width: 30%; text-align: center; font-size: 1.1rem !important; padding: 12px !important; }
+          .header-row-2 { flex-direction: column; }
+          .header-row-2 .open-cart-large { width: 100%; font-size: 1.1rem !important; padding: 12px !important; }
+          
+          /* السلة العملاقة في الموبايل */
+          .mega-cart-btn { width: 100%; font-size: 1.8rem !important; padding: 15px 20px !important; }
+          .mega-cart-badge { font-size: 1.5rem; padding: 5px 15px; }
           
           .p-grid-royal { grid-template-columns: 1fr !important; padding: 15px; gap: 25px; }
           .p-img-box { height: 300px !important; }
@@ -267,7 +277,7 @@ function App() {
         }
       `}</style>
 
-      {/* الشريط العلوي المطور والمكبر */}
+      {/* الشريط العلوي مع السلة العملاقة */}
       <header className="royal-header" style={{boxShadow: '0 5px 20px rgba(0,0,0,0.15)'}}>
          <div className="header-row-1">
              <div className="logo-box" style={{fontSize: '2rem'}}>💧 <span>مَتجر</span> {settings.shop_name || 'تشاطيب'} ⚡</div>
@@ -277,7 +287,10 @@ function App() {
          <div className="header-row-2">
              <button className="open-cart-large" onClick={() => handleRating('store', settings.shop_name || 'المتجر')} style={{border:'2px solid var(--gold)', color:'var(--gold)', background:'transparent', fontWeight:'bold'}}>⭐ قيمنا</button>
              <button className="open-cart-large" onClick={() => setShowWorkersHaraj(true)} style={{border:'2px solid var(--navy)', color:'var(--navy)', background:'white', fontWeight:'bold'}}>👷‍♂️ العمال</button>
-             <button className="open-cart-large" onClick={() => {setShowCart(true); setCheckoutStep(1);}} style={{background:'#ffffff', color:'var(--navy)', border:'2px solid var(--navy)', fontWeight:'bold', fontSize:'1.3rem', padding:'12px 30px'}}>🛒 السلة <span style={{background:'#e74c3c', color:'#fff', padding:'3px 12px', borderRadius:'15px', marginLeft:'8px', fontWeight:'bold'}}>{cart.length}</span></button>
+             {/* 🛒 زر السلة العملاق */}
+             <button className="mega-cart-btn" onClick={() => {setShowCart(true); setCheckoutStep(1);}}>
+                🛒 السلة <span className="mega-cart-badge">{cart.length}</span>
+             </button>
          </div>
       </header>
       
@@ -304,7 +317,7 @@ function App() {
                   <div style={{fontSize:'1rem', color:'#888', marginBottom:'10px', minHeight:'20px'}}>{parsedInfo.color && <span style={{display:'inline-block', border:'1px solid #ddd', padding:'4px 8px', borderRadius:'8px', marginRight:'8px'}}>اللون: <b style={{color: darkMode?'#fff':'#000'}}>{parsedInfo.color}</b></span>}{parsedInfo.warranty && <span style={{display:'inline-block', border:'1px solid #ddd', padding:'4px 8px', borderRadius:'8px'}}>ضمان <b style={{color: darkMode?'#fff':'#000'}}>{parsedInfo.warranty}</b></span>}</div>
                   <div className="rating-stars" onClick={(e) => { e.stopPropagation(); handleRating('product', product.name); }}>⭐⭐⭐⭐⭐</div>
                   <div className="price-area" style={{marginTop:'15px', display:'flex', alignItems:'center'}}>
-                     <span className="now-price">{product.price} ر.س</span>
+                     <span className="now-price" style={{color: '#e74c3c'}}>{product.price} ر.س</span>
                      {product.is_sale && <span className="fire-anim">🔥</span>}
                      {product.old_price > 0 && <span className="old-price" style={{marginLeft:'15px', fontSize:'1.2rem'}}>{product.old_price} ر.س</span>}
                   </div>
@@ -333,7 +346,7 @@ function App() {
               <div className="m-details-side">
                 <h2 style={{color: darkMode?'var(--gold)':'var(--navy)', margin:'10px 0', fontSize:'2rem'}}>{selectedProduct.name}</h2>
                 <div className="rating-stars" onClick={() => handleRating('product', selectedProduct.name)} style={{fontSize:'1.5rem'}}>⭐⭐⭐⭐⭐ <span style={{fontSize:'1rem', color:'#888', textDecoration:'underline'}}>(أضف تقييمك)</span></div>
-                <div className="m-price-box" style={{marginTop:'15px', marginBottom:'20px'}}><span className="m-now">{selectedProduct.price} ر.س</span>{selectedProduct.old_price > 0 && <span className="m-old" style={{fontSize:'1.5rem'}}>{selectedProduct.old_price} ر.س</span>}</div>
+                <div className="m-price-box" style={{marginTop:'15px', marginBottom:'20px'}}><span className="m-now" style={{fontSize:'2.5rem', color:'#e74c3c'}}>{selectedProduct.price} ر.س</span>{selectedProduct.old_price > 0 && <span className="m-old" style={{fontSize:'1.5rem'}}>{selectedProduct.old_price} ر.س</span>}</div>
                 <div style={{display:'flex', gap:'10px', marginBottom:'20px', flexWrap:'wrap'}}>{parseProductDetails(selectedProduct.details).warranty && <span style={{background:'rgba(52, 152, 219, 0.1)', color:'#3498db', padding:'5px 12px', borderRadius:'10px', fontWeight:'bold', fontSize:'1.1rem'}}>🛡️ ضمان {parseProductDetails(selectedProduct.details).warranty}</span>}{parseProductDetails(selectedProduct.details).color && <span style={{background:'rgba(155, 89, 182, 0.1)', color:'#9b59b6', padding:'5px 12px', borderRadius:'10px', fontWeight:'bold', fontSize:'1.1rem'}}>🎨 اللون: {parseProductDetails(selectedProduct.details).color}</span>}{parseProductDetails(selectedProduct.details).manufacturer && <span style={{background:'rgba(46, 204, 113, 0.1)', color:'#27ae60', padding:'5px 12px', borderRadius:'10px', fontWeight:'bold', fontSize:'1.1rem'}}>🏭 {parseProductDetails(selectedProduct.details).manufacturer}</span>}</div>
                 <div className="m-desc-box" style={{marginBottom:'0'}}><h3 style={{color: darkMode?'#ddd':'var(--navy)', margin:'10px 0', fontSize:'1.3rem'}}>المواصفات:</h3><div className="m-desc" style={{backgroundColor: darkMode?'#333':'#f9f9f9', color: darkMode?'#fff':'#555', padding:'15px', fontSize:'1.1rem', borderRadius:'15px', lineHeight:'1.8'}}>{parseProductDetails(selectedProduct.details).text || 'لا يوجد تفاصيل.'}</div></div>
                 <button style={{background:'transparent', color:'var(--navy)', border:'2px solid var(--navy)', padding:'12px', borderRadius:'15px', fontWeight:'bold', marginTop:'20px', cursor:'pointer', display:'block', width:'100%', fontSize:'1.2rem'}} onClick={() => window.open(`https://wa.me/?text=مرحباً، وش رأيك في هذا المنتج: ${selectedProduct.name} بسعر ${selectedProduct.price} ريال من متجر ${settings.shop_name}؟`)}>مشاركة للاستشارة 📤</button>
@@ -350,7 +363,7 @@ function App() {
       {showWorkersHaraj && (
         <div className="cart-overlay open" style={{background:'rgba(0,0,0,0.7)', backdropFilter:'blur(8px)'}}>
           <div className="cart-inner-container-large fade-in-up" style={{maxWidth:'900px', backgroundColor: darkMode ? '#1e1e1e':'#fff'}}>
-             <div className="cart-header-fixed" style={{padding:'20px'}}><h2>👷‍♂️ خدمات العمال والصيانة</h2><button className="close-btn-x" onClick={() => setShowWorkersHaraj(false)} style={{width:'40px', height:'40px', fontSize:'1.5rem'}}>✕</button></div>
+             <div className="cart-header-fixed" style={{padding:'20px'}}><h2>👷‍♂️ حراج العمال والصيانة</h2><button className="close-btn-x" onClick={() => setShowWorkersHaraj(false)} style={{width:'40px', height:'40px', fontSize:'1.5rem'}}>✕</button></div>
              <div className="workers-filters" style={{padding:'20px', background: darkMode?'#222':'#f8f9fa', borderBottom:'1px solid #eee', display:'flex', gap:'15px', flexWrap:'wrap'}}><select value={harajRegion} onChange={e => {setHarajRegion(e.target.value); setHarajCity('');}} style={{flex:1, padding:'15px', borderRadius:'15px', border:'2px solid var(--gold)', fontSize:'1.1rem'}}><option value="">🔍 كل مناطق المملكة</option>{Object.keys(SAUDI_REGIONS).map((r, i) => <option key={i} value={r}>{r}</option>)}</select><select value={harajCity} onChange={e => setHarajCity(e.target.value)} style={{flex:1, padding:'15px', borderRadius:'15px', border:'2px solid var(--gold)', fontSize:'1.1rem'}} disabled={!harajRegion}><option value="">🏙️ المحافظات</option>{harajRegion && SAUDI_REGIONS[harajRegion].map((c, i) => <option key={i} value={c}>{c}</option>)}</select></div>
              <div className="cart-products-scroll" style={{background: darkMode?'#121212':'#fdfdfd', padding:'20px'}}>
                  {visibleWorkers.length === 0 ? (<div className="empty-state"><h3 style={{color:darkMode?'#fff':'#333', fontSize:'1.5rem'}}>لا يوجد عمال متاحين.</h3></div>) : (
@@ -376,6 +389,7 @@ function App() {
         </div>
       )}
 
+      {/* 🛒 السلة ذات المرحلتين */}
       {showCart && (
         <div className="cart-overlay open">
           <div className="cart-inner-container-large fade-in-up" style={{backgroundColor: darkMode?'#1e1e1e':'#fff', color: darkMode?'#fff':'#000'}}>
