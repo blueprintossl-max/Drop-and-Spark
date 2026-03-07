@@ -46,6 +46,9 @@ function App() {
   const [clientMain, setClientMain] = useState(''); const [clientSub, setClientSub] = useState(''); const [itemQtys, setItemQtys] = useState({});
   const [searchQuery, setSearchQuery] = useState(''); const [selectedProduct, setSelectedProduct] = useState(null);
   
+  // States for Order Tracking
+  const [showTrackOrder, setShowTrackOrder] = useState(false); const [trackPhoneInput, setTrackPhoneInput] = useState(''); const [trackedOrdersList, setTrackedOrdersList] = useState(null);
+  
   const [timeLeft, setTimeLeft] = useState(8500); const [prevOrderCount, setPrevOrderCount] = useState(0);
 
   const isAdminPanel = window.location.pathname.includes('/admin'); const FREE_SHIPPING_THRESHOLD = 500;
@@ -165,8 +168,7 @@ function App() {
     try {
       const res = await fetch(`${API_URL}/api/orders`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ customer_name: customerName, customer_phone: `${customerPhone} | دفع: ${paymentMethod} | موقع: ${customerLocation}`, cart_data: cart, total: totalAmount }) });
       if (res.ok) {
-        const orderId = 'TSH-' + Math.floor(1000 + Math.random() * 9000);
-        Swal.fire({ title: '🎉 تم استلام طلبك بنجاح!', html: `رقم طلبك للمتابعة هو: <b style="color:var(--gold); font-size:1.5rem;">${orderId}</b><br><br>سنتواصل معك لتأكيد التوصيل. شكراً لثقتكم.`, icon: 'success', confirmButtonText: 'متابعة التسوق', position: 'center' });
+        Swal.fire({ title: '🎉 تم استلام طلبك بنجاح!', html: `<br><b>سنتواصل معك لتأكيد التوصيل.</b><br><br><span style="color:#27ae60; font-weight:bold;">💡 يمكنك تتبع حالة طلبك في أي وقت عبر قسم (تتبع طلباتي) باستخدام رقم جوالك.</span>`, icon: 'success', confirmButtonText: 'متابعة التسوق', position: 'center' });
         setCart([]); setCustomerName(''); setCustomerPhone(''); setCustomerLocation(''); setCheckoutStep(1); setShowCart(false); fetchAllData();
       }
     } catch (e) { Swal.fire({title:'خطأ', text:'تأكد من الاتصال بالإنترنت', icon:'error', position:'center'}); }
@@ -200,7 +202,7 @@ function App() {
   }
 
   // =========================================================================
-  // 💻 5. واجهة العميل (Storefront) - الإصدار الفاخر V 5.2 (السلة العملاقة)
+  // 💻 5. واجهة العميل (Storefront) - الإصدار الفاخر V 6.0 (السلة العملاقة + التتبع)
   // =========================================================================
   let processedProducts = products;
   if (searchQuery) { processedProducts = processedProducts.filter(p => p.name.includes(searchQuery) || (p.details && p.details.includes(searchQuery))); } 
@@ -217,7 +219,7 @@ function App() {
   const loyaltyPoints = Math.floor(cartTotalAmount / 100) * 5;
 
   return (
-    <div className={`App client-theme ${showCart || selectedProduct || showWorkersHaraj ? 'no-scroll' : ''} ${darkMode ? 'dark-mode' : ''}`}>
+    <div className={`App client-theme ${showCart || selectedProduct || showWorkersHaraj || showTrackOrder ? 'no-scroll' : ''} ${darkMode ? 'dark-mode' : ''}`}>
       
       <style>{`
         .dark-mode { background-color: #121212 !important; color: #f1f1f1 !important; } .dark-mode .royal-header { background-color: #000 !important; border-bottom-color: var(--gold) !important; } .dark-mode .client-main-bar { background-color: #1a1a1a !important; } .dark-mode .client-sub-bar { background-color: #222 !important; border-bottom: 1px solid #333 !important; } .dark-mode .client-sub-bar button { color: #ccc; border-color: #555; } .dark-mode .client-sub-bar button.active { background-color: var(--gold); color: #000; } .dark-mode .royal-p-card { background-color: #1e1e1e !important; border-color: #333 !important; box-shadow: none; } .dark-mode .p-info-box h4 { color: #f1f1f1 !important; } .dark-mode .p-img-box { background-color: #fff; } 
@@ -229,21 +231,23 @@ function App() {
         .marquee-content { display: inline-block; animation: marquee 20s linear infinite; } @keyframes marquee { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
         
         /* تصميم الشريط العلوي الجديد */
-        .royal-header { display: flex; flex-direction: column; padding: 25px 30px !important; gap: 20px; }
+        .royal-header { display: flex; flex-direction: column; padding: 20px !important; gap: 15px; }
         .header-row-1 { display: flex; justify-content: space-between; align-items: center; width: 100%; }
-        .header-row-2 { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 15px; width: 100%; }
-        .header-row-2 .open-cart-large { font-size: 1.15rem !important; padding: 12px 25px !important; border-radius: 30px !important; flex: 1; }
+        .header-row-2 { display: flex; justify-content: center; align-items: center; gap: 10px; width: 100%; }
+        .header-row-2 .open-cart-large { font-size: 1rem !important; padding: 10px 15px !important; border-radius: 15px !important; flex: 1; font-weight: bold; }
         
         /* 🛒 السلة العملاقة Mega Cart Button */
-        .mega-cart-btn { background: #ffffff; color: var(--navy); border: 4px solid var(--navy); font-weight: 900; font-size: 2.2rem !important; padding: 15px 40px !important; border-radius: 40px !important; box-shadow: 0 10px 25px rgba(0,0,0,0.2); transition: all 0.3s ease; flex: 2; min-width: 60%; display: flex; justify-content: center; align-items: center; cursor: pointer; }
-        .mega-cart-btn:hover { transform: scale(1.03); }
-        .mega-cart-badge { background: #e74c3c; color: #fff; padding: 5px 20px; border-radius: 20px; margin-left: 15px; font-weight: 900; font-size: 1.8rem; display: inline-block; animation: pulse 2s infinite; }
+        .header-row-3 { width: 100%; display: flex; justify-content: center; margin-top: 5px; }
+        .mega-cart-btn { width: 100%; background: #ffffff; border: 4px solid var(--gold); padding: 15px !important; border-radius: 50px !important; box-shadow: 0 8px 20px rgba(0,0,0,0.15); display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.3s; }
+        .mega-cart-btn:hover { transform: scale(1.02); }
+        .cart-icon-giant { font-size: 3.5rem; filter: drop-shadow(2px 4px 6px rgba(243, 156, 18, 0.5)); transform: scale(1.2); }
+        .cart-text-wrapper { display: flex; flex-direction: column; align-items: center; margin-left: 20px; }
+        .cart-label { font-size: 1.2rem; color: var(--navy); font-weight: bold; }
+        .mega-cart-badge { background: #e74c3c; color: #fff; padding: 5px 20px; border-radius: 20px; font-weight: 900; font-size: 1.8rem; animation: pulse 2s infinite; margin-top: 5px; }
         
-        /* تعديلات السعر الأحمر الضخم */
         .now-price { font-size: 2.2rem !important; font-weight: 900 !important; color: #e74c3c !important; }
         .dark-mode .now-price, .dark-mode .m-now { color: #ff6b6b !important; }
         
-        /* ثورة عرض المنتجات (Full Screen) */
         .p-grid-royal { display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 30px; padding: 20px; }
         .royal-p-card { display: flex; flex-direction: column; border-radius: 25px; overflow: hidden; transition: 0.3s; }
         .p-img-box { height: 350px !important; }
@@ -256,17 +260,10 @@ function App() {
           .header-row-1 { flex-direction: column; gap: 15px; }
           .search-bar-wrapper { width: 100%; margin: 0 !important; }
           .search-bar-wrapper input { padding: 15px !important; font-size: 1.2rem !important; }
-          .header-row-2 { flex-direction: column; }
-          .header-row-2 .open-cart-large { width: 100%; font-size: 1.1rem !important; padding: 12px !important; }
-          
-          /* السلة العملاقة في الموبايل */
-          .mega-cart-btn { width: 100%; font-size: 1.8rem !important; padding: 15px 20px !important; }
-          .mega-cart-badge { font-size: 1.5rem; padding: 5px 15px; }
           
           .p-grid-royal { grid-template-columns: 1fr !important; padding: 15px; gap: 25px; }
           .p-img-box { height: 300px !important; }
           
-          /* Bottom Sheets */
           .cart-overlay { align-items: flex-end !important; padding: 0 !important; }
           .cart-inner-container-large, .product-modal-content { width: 100% !important; margin: 0 !important; border-bottom-left-radius: 0 !important; border-bottom-right-radius: 0 !important; max-height: 90vh !important; padding: 20px !important; display: flex; flex-direction: column; overflow: hidden; }
           .modal-body-split { flex-direction: column !important; overflow-y: auto !important; padding-bottom: 80px !important; gap: 0 !important; }
@@ -277,19 +274,27 @@ function App() {
         }
       `}</style>
 
-      {/* الشريط العلوي مع السلة العملاقة */}
+      {/* الشريط العلوي الجديد بالكامل */}
       <header className="royal-header" style={{boxShadow: '0 5px 20px rgba(0,0,0,0.15)'}}>
          <div className="header-row-1">
              <div className="logo-box" style={{fontSize: '2rem'}}>💧 <span>مَتجر</span> {settings.shop_name || 'تشاطيب'} ⚡</div>
-             <div className="search-bar-wrapper" style={{flex:1, margin:'0 40px'}}><input placeholder="🔍 ابحث عن منتج، ماركة، أو مواصفات..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} style={{borderRadius:'30px', padding:'15px 25px', width:'100%', fontSize:'1.2rem', border:'2px solid var(--gold)'}} /></div>
+             <div className="search-bar-wrapper" style={{flex:1, margin:'0 40px'}}><input placeholder="🔍 ابحث عن منتج، ماركة..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} style={{borderRadius:'30px', padding:'15px 25px', width:'100%', fontSize:'1.2rem', border:'2px solid var(--gold)'}} /></div>
              <button onClick={() => setDarkMode(!darkMode)} style={{background:'transparent', border:'none', fontSize:'2.2rem', cursor:'pointer'}}>{darkMode ? '☀️' : '🌙'}</button>
          </div>
          <div className="header-row-2">
-             <button className="open-cart-large" onClick={() => handleRating('store', settings.shop_name || 'المتجر')} style={{border:'2px solid var(--gold)', color:'var(--gold)', background:'transparent', fontWeight:'bold'}}>⭐ قيمنا</button>
-             <button className="open-cart-large" onClick={() => setShowWorkersHaraj(true)} style={{border:'2px solid var(--navy)', color:'var(--navy)', background:'white', fontWeight:'bold'}}>👷‍♂️ العمال</button>
-             {/* 🛒 زر السلة العملاق */}
+             <button className="open-cart-large" onClick={() => handleRating('store', settings.shop_name || 'المتجر')} style={{border:'2px solid var(--gold)', color:'var(--gold)', background:'transparent'}}>⭐ قيمنا</button>
+             <button className="open-cart-large" onClick={() => setShowWorkersHaraj(true)} style={{border:'2px solid var(--navy)', color:'var(--navy)', background:'white'}}>👷‍♂️ العمال</button>
+             {/* الزر الجديد: تتبع طلباتي */}
+             <button className="open-cart-large" onClick={() => setShowTrackOrder(true)} style={{background:'var(--gold)', color:'#000', border:'none'}}>🚚 تتبع طلباتي</button>
+         </div>
+         {/* السلة العملاقة البيضاء */}
+         <div className="header-row-3">
              <button className="mega-cart-btn" onClick={() => {setShowCart(true); setCheckoutStep(1);}}>
-                🛒 السلة <span className="mega-cart-badge">{cart.length}</span>
+                <span className="cart-icon-giant">🛒</span>
+                <span className="cart-text-wrapper">
+                   <span className="cart-label">سلة المشتريات</span>
+                   <span className="mega-cart-badge">{cart.length}</span>
+                </span>
              </button>
          </div>
       </header>
@@ -337,6 +342,7 @@ function App() {
       </div>
       <button className="floating-wa-btn" style={{bottom:'60px', width:'70px', height:'70px', fontSize:'2rem'}} onClick={() => window.open(`https://wa.me/${settings.phone}`)}>💬</button>
 
+      {/* نافذة المنتج المدمجة */}
       {selectedProduct && (
         <div className="product-modal-overlay" onClick={() => setSelectedProduct(null)}>
           <div className="product-modal-content fade-in-up" onClick={e => e.stopPropagation()} style={{backgroundColor: darkMode ? '#1e1e1e':'#fff', color: darkMode?'#fff':'#000'}}>
@@ -360,6 +366,54 @@ function App() {
         </div>
       )}
 
+      {/* 🚚 نافذة تتبع الطلبات (التعديل الجديد) */}
+      {showTrackOrder && (
+        <div className="cart-overlay open" style={{background:'rgba(0,0,0,0.7)', backdropFilter:'blur(8px)'}}>
+          <div className="cart-inner-container-large fade-in-up" style={{maxWidth:'600px', backgroundColor: darkMode ? '#1e1e1e':'#fff'}}>
+             <div className="cart-header-fixed" style={{padding:'20px'}}>
+                <h2 style={{margin:0, color: darkMode?'#fff':'var(--navy)'}}>🚚 تتبع طلباتي</h2>
+                <button className="close-btn-x" onClick={() => {setShowTrackOrder(false); setTrackedOrdersList(null); setTrackPhoneInput('');}} style={{width:'40px', height:'40px', fontSize:'1.5rem'}}>✕</button>
+             </div>
+             <div className="cart-products-scroll" style={{padding:'20px'}}>
+                <div style={{marginBottom:'20px'}}>
+                  <p style={{marginBottom:'10px', fontSize:'1.1rem', color: darkMode?'#ccc':'#555'}}>أدخل رقم الجوال الذي استخدمته في الطلب:</p>
+                  <div style={{display:'flex', gap:'10px'}}>
+                    <input type="tel" className="c-input" placeholder="05XXXXXXXX" value={trackPhoneInput} onChange={e => setTrackPhoneInput(e.target.value)} style={{flex:1, marginBottom:0, fontSize:'1.2rem', padding:'15px', backgroundColor: darkMode?'#444':'#fff', color: darkMode?'#fff':'#000'}} />
+                    <button className="btn-wa-confirm-giant" style={{width:'auto', padding:'10px 25px', fontSize:'1.2rem', borderRadius:'10px', background:'var(--navy)'}} onClick={() => {
+                      if(!trackPhoneInput) return Swal.fire('تنبيه','أدخل رقم الجوال للبحث','warning');
+                      const results = orders.filter(o => o.customer_phone && o.customer_phone.includes(trackPhoneInput));
+                      setTrackedOrdersList(results);
+                    }}>بحث 🔍</button>
+                  </div>
+                </div>
+                {trackedOrdersList && trackedOrdersList.length === 0 && (
+                   <div className="empty-state" style={{marginTop:'20px'}}><h3 style={{color:'#e74c3c'}}>لا توجد طلبات مسجلة بهذا الرقم.</h3></div>
+                )}
+                {trackedOrdersList && trackedOrdersList.length > 0 && (
+                   <div style={{display:'flex', flexDirection:'column', gap:'15px'}}>
+                     {trackedOrdersList.map(o => (
+                       <div key={o.id} style={{border:'2px solid var(--gold)', borderRadius:'15px', padding:'20px', background: darkMode?'#222':'#fdfdfd'}}>
+                          <div style={{display:'flex', justifyContent:'space-between', marginBottom:'15px', borderBottom:'1px solid #ccc', paddingBottom:'10px'}}>
+                            <strong style={{color:'var(--gold)', fontSize:'1.2rem'}}>طلب #{o.id}</strong>
+                            <span style={{fontSize:'1rem', color:'#888'}}>{new Date(o.created_at).toLocaleDateString('ar-SA')}</span>
+                          </div>
+                          <div style={{marginBottom:'15px', fontSize:'1.2rem'}}><strong>الإجمالي:</strong> <span style={{color:'#e74c3c', fontWeight:'bold'}}>{o.total} ر.س</span></div>
+                          <div style={{display:'flex', alignItems:'center', gap:'15px'}}>
+                            <strong style={{fontSize:'1.1rem'}}>حالة الطلب:</strong> 
+                            <span style={{background: o.status === 'مكتمل' ? '#27ae60' : '#f39c12', color:'#fff', padding:'8px 20px', borderRadius:'20px', fontWeight:'bold', fontSize:'1.1rem'}}>
+                              {o.status === 'مكتمل' ? '✅ تم التوصيل' : '📦 جاري التجهيز'}
+                            </span>
+                          </div>
+                       </div>
+                     ))}
+                   </div>
+                )}
+             </div>
+          </div>
+        </div>
+      )}
+
+      {/* العمال */}
       {showWorkersHaraj && (
         <div className="cart-overlay open" style={{background:'rgba(0,0,0,0.7)', backdropFilter:'blur(8px)'}}>
           <div className="cart-inner-container-large fade-in-up" style={{maxWidth:'900px', backgroundColor: darkMode ? '#1e1e1e':'#fff'}}>
@@ -433,7 +487,7 @@ function App() {
                    <div className="customer-info-box" style={{backgroundColor: darkMode?'#2a2a2a':'#e8f4f8', borderColor: darkMode?'#555':'#3498db', marginTop:0, padding:'25px', borderRadius:'20px'}}>
                      <h3 style={{marginTop:0, color: darkMode?'var(--gold)':'var(--navy)', fontSize:'1.4rem', marginBottom:'20px'}}>📍 بيانات التوصيل والدفع:</h3>
                      <input className="c-input" type="text" placeholder="الاسم الثلاثي (إجباري)" value={customerName} onChange={e => setCustomerName(e.target.value)} style={{backgroundColor: darkMode?'#444':'#fff', color: darkMode?'#fff':'#000', padding:'15px', marginBottom:'15px', fontSize:'1.1rem', borderRadius:'10px'}} />
-                     <input className="c-input" type="tel" placeholder="رقم الجوال (إجباري)" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} style={{backgroundColor: darkMode?'#444':'#fff', color: darkMode?'#fff':'#000', padding:'15px', marginBottom:'15px', fontSize:'1.1rem', borderRadius:'10px'}} />
+                     <input className="c-input" type="tel" placeholder="رقم الجوال (إجباري للتتبع)" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} style={{backgroundColor: darkMode?'#444':'#fff', color: darkMode?'#fff':'#000', padding:'15px', marginBottom:'15px', fontSize:'1.1rem', borderRadius:'10px'}} />
                      <input className="c-input" type="text" placeholder="رابط موقع التوصيل Google Maps (اختياري)" value={customerLocation} onChange={e => setCustomerLocation(e.target.value)} style={{backgroundColor: darkMode?'#444':'#fff', color: darkMode?'#fff':'#000', padding:'15px', marginBottom:'15px', fontSize:'1.1rem', borderRadius:'10px'}} />
                      <h4 style={{color: darkMode?'#ddd':'#555', margin:'20px 0 10px 0', fontSize:'1.2rem'}}>طريقة الدفع المفضلة:</h4>
                      <select className="c-input" value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} style={{backgroundColor: darkMode?'#444':'#fff', color: darkMode?'#fff':'#000', padding:'15px', fontSize:'1.1rem', borderRadius:'10px'}}>
